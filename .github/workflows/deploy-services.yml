@@ -24,20 +24,18 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 
-      - name: test secret
-        env:
-          KUBERNETES: ${{ vars.KUBERNETES }}
-        run: |
-          echo $KUBERNETES
-        
-        
-
       - name: Setup k8s access to kubectl
         run: |
           echo $KUBERNETES | base64 -d > kubeconfig.txt
           export KUBECONFIG=$(pwd)/kubeconfig.txt
-          cat kubeconfig.txt
 
+      - name: Setup credentials secret in k8s
+        env:
+          NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
+          MINIO_USR: ${{ secret.MINIO_USR }}
+          MINIO_PWD: ${{ secret.MINIO_PWD }}
+        run: |
+          envsubst < code/k8s/cred-secret.yml | kubectl apply -n $NAMESPACE -f -
 
       - name: Setup github container registry credentials in k8s
         run: |
