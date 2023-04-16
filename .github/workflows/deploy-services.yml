@@ -25,6 +25,8 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Setup k8s access to kubectl
+        env:
+          KUBERNETES: ${{ secrets.KUBERNETES }}
         run: |
           mkdir --parent ~/.kube
           echo $KUBERNETES | base64 -d > ~/.kube/config
