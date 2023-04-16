@@ -15,7 +15,7 @@ def main():
     global DOCKER_REGISTRY, SERVICE_NAMESPACE
     # read environment variables
     DOCKER_REGISTRY = os.environ["DOCKER_REGISTRY"]
-    SERVICE_NAMESPACE = os.environ["SERVICE_NAMESPACE"]
+    SERVICE_NAMESPACE = os.environ["NAMESPACE"]
     discover_services()
 
 
@@ -50,6 +50,7 @@ def deploy_service(service_name: str) -> None:
     # setup service environment variables
     os.environ["SERVICE"] = service_name
     os.system(f"envsubst < ../k8s/service.yml | kubectl apply -n {SERVICE_NAMESPACE} -f -")
+    os.system(f"kubectl -n {SERVICE_NAMESPACE} rollout restart deployment {service_name}")
     print(f"{service_name} deployed!")
 
 if __name__ == '__main__':
