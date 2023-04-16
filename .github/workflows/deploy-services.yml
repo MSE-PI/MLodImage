@@ -32,8 +32,8 @@ jobs:
       - name: Setup credentials secret in k8s
         env:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
-          MINIO_USR: ${{ secret.MINIO_USR }}
-          MINIO_PWD: ${{ secret.MINIO_PWD }}
+          MINIO_USR: ${{ secrets.MINIO_USR }}
+          MINIO_PWD: ${{ secrets.MINIO_PWD }}
         run: |
           envsubst < code/k8s/cred-secret.yml | kubectl apply -n $NAMESPACE -f -
 
