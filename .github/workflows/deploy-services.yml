@@ -28,6 +28,7 @@ jobs:
         run: |
           mkdir --parent ~/.kube
           echo $KUBERNETES | base64 -d > ~/.kube/config
+          kubectl config view
 
       - name: Setup credentials secret in k8s
         env:
