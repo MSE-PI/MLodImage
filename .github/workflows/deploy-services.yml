@@ -40,3 +40,8 @@ jobs:
       - name: ls dir
         run: |
           ls -al
+
+      - name: ls dir
+        run: |
+          envsubst -v
+          
