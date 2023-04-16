@@ -1,5 +1,4 @@
-# This is a basic workflow to help you get started with Actions
-
+# This is a workflow to deploy all services to k8s cluster
 name: deploy-services-workflow
 
 # Controls when the workflow will run
@@ -25,23 +24,31 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 
+      - name: test secret
+        env:
+          KUBERNETES: ${{ secrets.KUBERNETES }}
+        run: |
+          echo $KUBERNETES
+        
+        
+
+      - name: Setup k8s access to kubectl
+        run: |
+          echo $KUBERNETES | base64 -d > kubeconfig.txt
+          export KUBECONFIG=$(pwd)/kubeconfig.txt
+          cat kubeconfig.txt
+
+
+      - name: Setup github container registry credentials in k8s
+        run: |
+           kubectl -n $SERVICE_NAMESPACE create secret docker-registry github-cred --docker-server=ghcr.io --docker-username=k8s --docker-password=$REGISTRY_TOKEN -o yaml --save-config --dry-run=client | kubectl apply -f -
+
+      - name: Login to github container registry
+        run: |
+          docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+
       - name: Run python script
         run: |
-          python3 --version
-
-      - name: Run docker
-        run: |
-          docker -v
-
-      - name: Run kubectl script
-        run: |
-          kubectl
-
-      - name: ls dir
-        run: |
-          ls -al
-
-      - name: ls dir
-        run: |
-          envsubst -v
+          cd code/services
+          python3 deploy_script.py
           
