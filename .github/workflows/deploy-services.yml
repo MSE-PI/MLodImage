@@ -26,8 +26,7 @@ jobs:
 
       - name: Setup k8s access to kubectl
         run: |
-          echo $KUBERNETES | base64 -d > kubeconfig.txt
-          export KUBECONFIG=$(pwd)/kubeconfig.txt
+          echo $KUBERNETES | base64 -d > ~/.kube/config
 
       - name: Setup credentials secret in k8s
         env:
