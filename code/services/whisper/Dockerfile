@@ -2,6 +2,8 @@ FROM python:3.10
 
 EXPOSE 8000
 
+LABEL org.opencontainers.image.source = "https://github.com/MSE-PI/MLodImage"
+
 ENV PYTHONUNBUFFERED=1
 ENV MINIO_USR=x
 ENV MINIO_PWD=x

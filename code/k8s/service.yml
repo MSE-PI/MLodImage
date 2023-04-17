@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: api-ingress
+  name: ${SERVICE}-ingress
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: 5000m
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
@@ -52,15 +52,15 @@ spec:
         app: ${SERVICE}
     spec:
       containers:
-      - image: {$DOCKER_REGISTRY}${SERVICE}
+      - image: ${DOCKER_REGISTRY}${SERVICE}:latest
         name: ${SERVICE}
-        resources:
-          requests:
-            tencent.com/vcuda-core: 20
-            tencent.com/vcuda-memory: 8
-          limits:
-            tencent.com/vcuda-core: 20
-            tencent.com/vcuda-memory: 8
+#        resources:
+#          requests:
+#            tencent.com/vcuda-core: 20
+#            tencent.com/vcuda-memory: 8
+#          limits:
+#            tencent.com/vcuda-core: 20
+#            tencent.com/vcuda-memory: 8
         ports:
         - containerPort: 8000
         env:
@@ -69,7 +69,7 @@ spec:
               secretKeyRef:
                 name: cred-secret
                 key: minio_pwd
-          - name: MINIO_USER
+          - name: MINIO_USR
             valueFrom:
               secretKeyRef:
                 name: cred-secret

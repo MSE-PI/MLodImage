@@ -27,7 +27,7 @@ def discover_services() -> None:
         if os.path.isdir(service):
             # check if the service ha a Dockerfile
             if os.path.isfile(f"{service}/Dockerfile"):
-                docker_build(service)
+                #docker_build(service)
                 deploy_service(service)
 
 def docker_build(service_name: str) -> None:
@@ -49,8 +49,12 @@ def deploy_service(service_name: str) -> None:
     print(f"Deploying {service_name}...")
     # setup service environment variables
     os.environ["SERVICE"] = service_name
-    os.system(f"envsubst < ../k8s/service.yml | kubectl apply -n {SERVICE_NAMESPACE} -f -")
+    status = os.system(f"envsubst < ../k8s/service.yml | kubectl apply -n {SERVICE_NAMESPACE} -f -")
+    if status != 0:
+        raise Exception(f"Error while deploying {service_name}")
     os.system(f"kubectl -n {SERVICE_NAMESPACE} rollout restart deployment {service_name}")
+    if status != 0:
+        raise Exception(f"Error while restarting {service_name}")
     print(f"{service_name} deployed!")
 
 if __name__ == '__main__':
