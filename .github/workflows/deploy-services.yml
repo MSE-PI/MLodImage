@@ -45,7 +45,7 @@ jobs:
 
       - name: Setup github container registry credentials in k8s
         run: |
-          kubectl -n $SERVICE_NAMESPACE create secret docker-registry github-cred --docker-server=ghcr.io --docker-username=k8s --docker-password=$REGISTRY_TOKEN -o yaml --save-config --dry-run=client | kubectl apply -f -
+          kubectl -n ${{ vars.SERVICE_NAMESPACE }} create secret docker-registry github-cred --docker-server=ghcr.io --docker-username=$ --docker-password=${{ secrets.REGISTRY_TOKEN }} -o yaml --save-config --dry-run=client | kubectl apply -f -
 
 
       - name: Run python script
