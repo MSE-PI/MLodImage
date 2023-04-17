@@ -53,5 +53,5 @@ jobs:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
         run: |
           cd code/services
-          python3 deploy_script.py
+          python3 deploy-script.py
           
