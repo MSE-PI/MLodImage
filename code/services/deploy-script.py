@@ -27,7 +27,7 @@ def discover_services() -> None:
         if os.path.isdir(service):
             # check if the service ha a Dockerfile
             if os.path.isfile(f"{service}/Dockerfile"):
-                #docker_build(service)
+                docker_build(service)
                 deploy_service(service)
 
 def docker_build(service_name: str) -> None:
