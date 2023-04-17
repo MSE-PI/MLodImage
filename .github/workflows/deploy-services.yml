@@ -41,11 +41,11 @@ jobs:
 
       - name: Log in to github registry
         # This is where you will update the personal access token to GITHUB_TOKEN
-        run: echo "${{ secrets.REGISTRY_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+        run: echo "${{ secrets.REGISTRY_TOKEN }}" | docker login ghcr.io -u ${{ secrets.REGISTRY_USER }} --password-stdin
 
       - name: Setup github container registry credentials in k8s
         run: |
-          kubectl -n ${{ vars.SERVICE_NAMESPACE }} create secret docker-registry github-cred --docker-server=ghcr.io --docker-username=$ --docker-password=${{ secrets.REGISTRY_TOKEN }} -o yaml --save-config --dry-run=client | kubectl apply -f -
+          kubectl -n ${{ vars.SERVICE_NAMESPACE }} create secret docker-registry github-cred --docker-server=ghcr.io --docker-username=${{ secrets.REGISTRY_USER }} --docker-password=${{ secrets.REGISTRY_TOKEN }} -o yaml --save-config --dry-run=client | kubectl apply -f -
 
 
       - name: Run python script
