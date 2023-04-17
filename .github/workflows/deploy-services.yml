@@ -51,6 +51,7 @@ jobs:
       - name: Run python script
         env:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
+          DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
         run: |
           cd code/services
           python3 deploy-script.py
