@@ -44,9 +44,92 @@ nlp_en.add_pipe("custom_language_detector", name="language_detector", last=True)
 emotion_analyzer = create_analyzer(task='emotion', lang='en')
 
 
+def check_sent(word, sentences):
+    final = [all([w in x for w in word]) for x in sentences]
+    sent_len = [sentences[i] for i in range(0, len(final)) if final[i]]
+    return int(len(sent_len))
+
+
+def get_metadata(text):
+    doc = nlp_en(text)
+
+    return doc._.language, emotion_analyzer.predict(text)
+
+
+def get_text_tf_idf_score(text: str):
+    # get total words in text
+    total_words = text.split()
+
+    # remove stop words
+    stop_words_list = set(stopwords.words('english'))
+    total_words = [w for w in total_words if w not in stop_words_list]
+
+    # remove punctuation
+    total_words = [w for w in total_words if w.isalpha()]
+
+    # count total words in lyrics
+    total_words_len = len(total_words)
+
+    # count total sentences in lyrics
+    total_sentences = tokenize.sent_tokenize(text)
+    total_sent_len = len(total_sentences)
+
+    # calculate tf for each word
+    tf_score = {}
+    for each_word in total_words:
+        each_word = each_word.replace('.', '')
+        if each_word not in stop_words:
+            if each_word in tf_score:
+                tf_score[each_word] += 1
+            else:
+                tf_score[each_word] = 1
+
+    # Dividing by total_word_length for each dictionary element
+    tf_score.update((x, y / int(total_words_len)) for x, y in tf_score.items())
+
+    idf_score = {}
+    for each_word in total_words:
+        each_word = each_word.replace('.', '')
+        if each_word not in stop_words:
+            if each_word in idf_score:
+                idf_score[each_word] = check_sent(each_word, total_sentences)
+            else:
+                idf_score[each_word] = 1
+
+    # Performing a log and divide
+    idf_score.update((x, math.log(int(total_sent_len) / y)) for x, y in idf_score.items())
+
+    tf_idf_score = {key: tf_score[key] * idf_score.get(key, 0) for key in tf_score.keys()}
+
+    return tf_idf_score
+
+
+def filter_insignificant(chunk, tag_suffixes):
+    good = []
+    for word, tag in chunk:
+        ok = True
+        for suffix in tag_suffixes:
+            if tag.endswith(suffix):
+                ok = False
+                break
+        if ok:
+            good.append((word, tag))
+    return good
+
+
+def get_top_n(dict_elem, n):
+    result = dict(sorted(dict_elem.items(), key=itemgetter(1), reverse=True))
+    # for each word get nltk tag
+    result = nltk.pos_tag(result)
+    tags = ['DT', 'CC', 'PRP']
+    result = filter_insignificant(result, tags)
+    result = [word.lower() for word, tag in result]
+    return result[:n]
+
+
 class MyService(Service):
     """
-    Face detection service model
+    Sentiment analysis service model
     """
 
     # Any additional fields must be excluded for Pydantic to work
@@ -54,104 +137,28 @@ class MyService(Service):
 
     def __init__(self):
         super().__init__(
-            name="Face Detection",
-            slug="face-detection",
+            name="Sentiment Analysis",
+            slug="sentiment_analysis",
             url=settings.service_url,
             summary=api_summary,
             description=api_description,
             status=ServiceStatus.AVAILABLE,
             data_in_fields=[
-                FieldDescription(name="image", type=[FieldDescriptionType.IMAGE_PNG, FieldDescriptionType.IMAGE_JPEG]),
+                FieldDescription(name="text", type=[FieldDescriptionType.TEXT_PLAIN]),
             ],
             data_out_fields=[
                 FieldDescription(name="result", type=[FieldDescriptionType.APPLICATION_JSON]),
             ]
         )
 
-    def check_sent(self, word, sentences):
-        final = [all([w in x for w in word]) for x in sentences]
-        sent_len = [sentences[i] for i in range(0, len(final)) if final[i]]
-        return int(len(sent_len))
-
-    def get_metadata(self, text):
-        doc = nlp_en(text)
-
-        return doc._.language, emotion_analyzer.predict(text)
-
-    def get_text_tf_idf_score(self, text: str):
-        # get total words in text
-        total_words = text.split()
-
-        # remove stop words
-        stop_words_list = set(stopwords.words('english'))
-        total_words = [w for w in total_words if w not in stop_words_list]
-
-        # remove punctuation
-        total_words = [w for w in total_words if w.isalpha()]
-
-        # count total words in lyrics
-        total_words_len = len(total_words)
-
-        # count total sentences in lyrics
-        total_sentences = tokenize.sent_tokenize(text)
-        total_sent_len = len(total_sentences)
-
-        # calculate tf for each word
-        tf_score = {}
-        for each_word in total_words:
-            each_word = each_word.replace('.', '')
-            if each_word not in stop_words:
-                if each_word in tf_score:
-                    tf_score[each_word] += 1
-                else:
-                    tf_score[each_word] = 1
-
-        # Dividing by total_word_length for each dictionary element
-        tf_score.update((x, y / int(total_words_len)) for x, y in tf_score.items())
-
-        idf_score = {}
-        for each_word in total_words:
-            each_word = each_word.replace('.', '')
-            if each_word not in stop_words:
-                if each_word in idf_score:
-                    idf_score[each_word] = self.check_sent(each_word, total_sentences)
-                else:
-                    idf_score[each_word] = 1
-
-        # Performing a log and divide
-        idf_score.update((x, math.log(int(total_sent_len) / y)) for x, y in idf_score.items())
-
-        tf_idf_score = {key: tf_score[key] * idf_score.get(key, 0) for key in tf_score.keys()}
-
-        return tf_idf_score
-
-    def filter_insignificant(self, chunk, tag_suffixes):
-        good = []
-        for word, tag in chunk:
-            ok = True
-            for suffix in tag_suffixes:
-                if tag.endswith(suffix):
-                    ok = False
-                    break
-            if ok:
-                good.append((word, tag))
-        return good
-
-    def get_top_n(self, dict_elem, n):
-        result = dict(sorted(dict_elem.items(), key=itemgetter(1), reverse=True))
-        # for each word get nltk tag
-        result = nltk.pos_tag(result)
-        tags = ['DT', 'CC', 'PRP']
-        result = self.filter_insignificant(result, tags)
-        result = [word.lower() for word, tag in result]
-        return result[:n]
-
     def process(self, data):
         # Get the text to analyze from storage
         text = data["text"].data
+        # bytes to string
+        text = text.decode("utf-8")
 
-        language, sentiments = self.get_metadata(text)
-        top_words = self.get_top_n(self.get_text_tf_idf_score(text), 10)
+        language, sentiments = get_metadata(text)
+        top_words = get_top_n(get_text_tf_idf_score(text), 10)
 
         # https://stackoverflow.com/a/57915246
         class NpEncoder(json.JSONEncoder):
@@ -170,10 +177,13 @@ class MyService(Service):
             "top_words": top_words,
         }
 
+        print(json_result)
+        print(json.dumps(json_result, cls=NpEncoder))
+
         return {
             "result": TaskData(
                 data=json.dumps(json_result, cls=NpEncoder),
-                type=FieldDescriptionType.APPLICATION_JSON,
+                type=FieldDescriptionType.APPLICATION_JSON
             )
         }
 
