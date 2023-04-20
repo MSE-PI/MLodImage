@@ -1,0 +1,79 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${SERVICE}-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 5000m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+
+spec:
+  rules:
+  - host: ${SERVICE}-mlodimage.kube.isc.heia-fr.ch
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ${SERVICE}
+            port:
+              number: 8000
+  tls:
+    - hosts:
+        - ${SERVICE}-mlodimage.kube.isc.heia-fr.ch
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${SERVICE}
+  name: ${SERVICE}
+spec:
+  ports:
+    - port: 8000
+  selector:
+    app: ${SERVICE}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ${SERVICE}
+  name: ${SERVICE}
+spec:
+  selector:
+    matchLabels:
+      app: ${SERVICE}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: ${SERVICE}
+    spec:
+      containers:
+      - image: ${DOCKER_REGISTRY}${SERVICE}:latest
+        name: ${SERVICE}
+        resources:
+          requests:
+            tencent.com/vcuda-core: 20
+            tencent.com/vcuda-memory: 8
+          limits:
+            tencent.com/vcuda-core: 20
+            tencent.com/vcuda-memory: 8
+        ports:
+        - containerPort: 8000
+        env:
+          - name: MINIO_PWD
+            valueFrom:
+              secretKeyRef:
+                name: cred-secret
+                key: minio_pwd
+          - name: MINIO_USR
+            valueFrom:
+              secretKeyRef:
+                name: cred-secret
+                key: minio_usr
+        imagePullPolicy: Always
+      imagePullSecrets:
+        - name: github-cred
