@@ -177,9 +177,6 @@ class MyService(Service):
             "top_words": top_words,
         }
 
-        print(json_result)
-        print(json.dumps(json_result, cls=NpEncoder))
-
         return {
             "result": TaskData(
                 data=json.dumps(json_result, cls=NpEncoder),
