@@ -1,6 +1,0 @@
-common-code[test] @ git+https://github.com/csia-pme/csia-pme.git@main#subdirectory=common-code
-nltk==3.8.1
-pysentimiento==0.6.3
-scikit-learn==1.2.2
-spacy==3.5.1
-spacy-langdetect==0.1.2
