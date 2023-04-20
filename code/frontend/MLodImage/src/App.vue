@@ -7,28 +7,32 @@
             <v-row align="center" justify="center">
                 <v-col cols="12" sm="8" md="6" lg="4">
                     <v-card
-                            width="100%"
-                            height="50vh"
-                            class="mx-auto gradient radius-10"
-                            elevation="10"
-                            transition="scale-transition"
+                        width="100%"
+                        height="50vh"
+                        class="mx-auto gradient radius-10"
+                        elevation="10"
+                        transition="scale-transition"
                     >
-                        <v-card-title class="headline">MLodImage</v-card-title>
+                        <v-card-title class="headline">
+                            MLodImage
+                            <v-icon class="ml-2" icon="mdi-image" />
+                        </v-card-title>
                         <v-card-text>
                             <v-file-input
-                                    prepend-icon=""
-                                    variant="solo"
-                                    accept="audio/ogg,audio/mp3"
-                                    label="File input"
+                                prepend-icon=""
+                                prepend-inner-icon="fa-file-audio"
+                                variant="solo"
+                                accept="audio/ogg,audio/mp3"
+                                label="Click to select a file or drag and drop it here !"
                             ></v-file-input>
                         </v-card-text>
                         <v-card-actions>
                             <v-btn
-                                    color="orange"
-                                    variant="flat"
-                                    size="x-large"
-                                    prepend-icon="mdi-play"
-                                    block
+                                color="orange"
+                                variant="flat"
+                                size="x-large"
+                                prepend-icon="fa-play"
+                                block
                             >
                                 Launch
                             </v-btn>
