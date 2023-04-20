@@ -19,6 +19,12 @@ RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 # download spacy model
 RUN python3 -m spacy download en_core_web_sm
 
+# download nltk data
+RUN python -m nltk.downloader averaged_perceptron_tagger
+RUN python -m nltk.downloader punkt
+RUN python -m nltk.downloader vader_lexicon
+RUN python -m nltk.downloader stopwords
+
 # copy all the files
 COPY . /app
 
