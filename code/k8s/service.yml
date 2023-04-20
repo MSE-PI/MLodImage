@@ -54,13 +54,13 @@ spec:
       containers:
       - image: ${DOCKER_REGISTRY}${SERVICE}:latest
         name: ${SERVICE}
-#        resources:
-#          requests:
-#            tencent.com/vcuda-core: 20
-#            tencent.com/vcuda-memory: 8
-#          limits:
-#            tencent.com/vcuda-core: 20
-#            tencent.com/vcuda-memory: 8
+        resources:
+          requests:
+            tencent.com/vcuda-core: 20
+            tencent.com/vcuda-memory: 8
+          limits:
+            tencent.com/vcuda-core: 20
+            tencent.com/vcuda-memory: 8
         ports:
         - containerPort: 8000
         env:
