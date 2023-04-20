@@ -50,6 +50,7 @@ jobs:
         env:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
           DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+          PYTHONUNBUFFERED: 1
         run: |
           cd code/services
           python3 deploy-script.py
