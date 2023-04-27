@@ -32,6 +32,7 @@ model_id = "stabilityai/stable-diffusion-2-base"
 
 scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
 pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler)
+pipe = pipe.to("cuda")
 compel = Compel(tokenizer=pipe.tokenizer, text_encoder=pipe.text_encoder)
 
 negative_prompts = "font, typo, signature, text, watermark, cropped, disfigured, duplicate, error, jpeg artifacts, low quality, lowres, mutated hands, out of frame, worst quality"
@@ -227,6 +228,7 @@ class MusicStyle(BaseModel):
 async def test(lyrics_analysis: LyricsAnalysis, music_style: MusicStyle):
     s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
     p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s)
+    p = p.to("cuda")
     c = Compel(tokenizer=p.tokenizer, text_encoder=p.text_encoder)
 
     print("Data processing...")
