@@ -9,6 +9,9 @@ import os
 
 DOCKER_REGISTRY: str = "-"
 SERVICE_NAMESPACE: str = "-"
+GPU_CORE: str = "tencent.com/vcuda-core: 20"
+GPU_MEMORY: str = "tencent.com/vcuda-memory: 32"
+
 
 
 def main():
@@ -46,15 +49,26 @@ def deploy_service(service_name: str) -> None:
     """
     This function deploys a service on the Kubernetes cluster
     """
+    # check if the service has a .gpu file
+    if os.path.isfile(f"{service_name}/.gpu"):
+        # set GPU ENV variables
+        print("GPU on : " + service_name)
+        os.environ["GPU_CORE"] = GPU_CORE
+        os.environ["GPU_MEMORY"] = GPU_MEMORY
+    else:
+        os.environ["GPU_CORE"] = ""
+        os.environ["GPU_MEMORY"] = ""
     print(f"Deploying {service_name}...")
     # setup service environment variables
     os.environ["SERVICE"] = service_name
+    os.system(f"envsubst < ../k8s/service.yml | cat")
+    #return
     status = os.system(f"envsubst < ../k8s/service.yml | kubectl apply -n {SERVICE_NAMESPACE} -f -")
     if status != 0:
-        raise Exception(f"Error while deploying {service_name}")
+        raise Exception(f"Error while deploying " + service_name)
     os.system(f"kubectl -n {SERVICE_NAMESPACE} rollout restart deployment {service_name}")
     if status != 0:
-        raise Exception(f"Error while restarting {service_name}")
+        raise Exception("Error while restarting " + service_name)
     print(f"{service_name} deployed!")
 
 if __name__ == '__main__':
