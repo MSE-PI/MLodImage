@@ -1,4 +1,30 @@
 <script setup lang="ts">
+import { store } from '@/utils/store';
+import { post, get } from './utils/api';
+import FileUpload from '@/components/FileUpload.vue';
+
+const waitForResult = async (id: string) => {
+    const result = await get(`http://localhost:8080/tasks/${id}/status`);
+    if (!result) {
+        setTimeout(waitForResult, 1000);
+        return;
+    } else {
+        console.log(result);
+        store.disabled = false;
+    }
+};
+
+const handleClick = async () => {
+    store.disabled = true;
+    const result = await post('http://localhost:8080/lyrics', store.file!);
+    if (result.id) {
+        console.log(result.id);
+        waitForResult(result.id);
+    } else {
+        console.log(result);
+    }
+};
+
 </script>
 
 <template>
@@ -9,30 +35,26 @@
                     <v-card
                         width="100%"
                         height="50vh"
-                        class="mx-auto gradient radius-10"
+                        class="mx-auto gradient radius-8 card-container"
                         elevation="10"
-                        transition="scale-transition"
                     >
-                        <v-card-title class="headline">
+                        <v-card-title class="headline card">
                             MLodImage
-                            <v-icon class="ml-2" icon="mdi-image" />
+                            <v-icon icon="mdi mdi-play-circle"/>
                         </v-card-title>
-                        <v-card-text>
-                            <v-file-input
-                                prepend-icon=""
-                                prepend-inner-icon="fa-file-audio"
-                                variant="solo"
-                                accept="audio/ogg,audio/mp3"
-                                label="Click to select a file or drag and drop it here !"
-                            ></v-file-input>
+                        <v-card-text class="card card-middle pb-2">
+                            <FileUpload />
                         </v-card-text>
-                        <v-card-actions>
+                        <v-card-actions class="pl-4 pr-4 pb-4 card">
                             <v-btn
+                                elevation="2"
                                 color="orange"
                                 variant="flat"
                                 size="x-large"
-                                prepend-icon="fa-play"
+                                class="radius-8"
                                 block
+                                v-bind="store"
+                                @click="handleClick"
                             >
                                 Launch
                             </v-btn>
@@ -47,6 +69,20 @@
 <style scoped>
 .full-height {
     height: 100vh;
+}
+
+.card-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.card-middle {
+    height: 100%;
+}
+
+.card {
+    height: auto;
 }
 
 .centered {
@@ -64,7 +100,7 @@
     color: white;
 }
 
-.radius-10 {
-    border-radius: 10px;
+.radius-8 {
+    border-radius: 8px;
 }
 </style>
