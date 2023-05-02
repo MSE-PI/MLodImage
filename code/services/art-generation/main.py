@@ -248,10 +248,13 @@ async def test(lyrics_analysis: LyricsAnalysis, music_style: MusicStyle, nb_imag
 
     prompt = prompt_builder(lyrics_analysis, music_style)
     print(prompt)
+    
+    prompt_multi = [prompt] * nb_images
+    negative_prompts_multi = [negative_prompts] * nb_images
 
     print("Prompt embedding...")
-    prompt_embeds = c(prompt)
-    negative_prompts_embeds = c(negative_prompts)
+    prompt_embeds = c(prompt_multi)
+    negative_prompts_embeds = c(negative_prompts_multi)
 
     print("Image generation...")
     images = p(prompt_embeds=[prompt_embeds] * nb_images,
