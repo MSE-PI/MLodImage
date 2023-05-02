@@ -1,9 +1,10 @@
 import asyncio
 import json
 import time
+import zipfile
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse, FileResponse
 from common_code.config import get_settings
 from pydantic import Field, BaseModel
 from common_code.http_client import HttpClient
@@ -223,9 +224,9 @@ class LyricsAnalysis(BaseModel):
 class MusicStyle(BaseModel):
     style: str
 
-# Custom route to test the service
-@app.post("/test")
-async def test(lyrics_analysis: LyricsAnalysis, music_style: MusicStyle):
+# Custom route to bypass the engine
+@app.post("/process")
+async def test(lyrics_analysis: LyricsAnalysis, music_style: MusicStyle, nb_images: int = 3):
     s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
     p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s)
     p = p.to("cuda")
@@ -245,6 +246,35 @@ async def test(lyrics_analysis: LyricsAnalysis, music_style: MusicStyle):
 
     prompt = prompt_builder(lyrics_analysis, music_style)
     print(prompt)
+
+    print("Prompt embedding...")
+    prompt_embeds = c(prompt)
+    negative_prompts_embeds = c(negative_prompts)
+
+    print("Image generation...")
+    images = p(prompt_embeds=prompt_embeds * nb_images,
+                num_inference_steps=20,
+                guidance_scale=4,
+                negative_prompt_embeds=negative_prompts_embeds*nb_images,
+                ).images
+
+    # Build an archive containing the images
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, 'w') as zip_file:
+        for i, image in enumerate(images):
+            image.save(f"image_{i}.png")
+            zip_file.write(f"image_{i}.png")
+
+    return FileResponse(archive, media_type="application/zip", filename="images.zip")
+    
+    
+
+@app.post("/test")
+async def test(prompt: str, negative_prompts: str):
+    s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
+    p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s)
+    p = p.to("cuda")
+    c = Compel(tokenizer=p.tokenizer, text_encoder=p.text_encoder)
 
     print("Prompt embedding...")
     prompt_embeds = c(prompt)
