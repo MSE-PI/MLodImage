@@ -32,10 +32,11 @@ from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler, Autoencod
 
 settings = get_settings()
 model_id = "stabilityai/stable-diffusion-2-base"
+guidance_scale = 5
+nb_steps = 80
 
 scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler)
-pipe = pipe.to("cuda")
+pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler).to("cuda")
 compel = Compel(tokenizer=pipe.tokenizer, text_encoder=pipe.text_encoder)
 
 negative_prompts = "font, typo, signature, text, watermark, cropped, disfigured, duplicate, error, jpeg artifacts, low quality, lowres, mutated hands, out of frame, worst quality"
@@ -91,15 +92,16 @@ class MyService(Service):
         nb_images = settings["nb_images"]
 
         prompt = prompt_builder(lyrics_analysis, music_style)
-        prompt_embeds = compel(prompt)
-        negative_prompts_embeds = compel(negative_prompts)
 
-        prompt_embeds = [prompt_embeds] * nb_images
-        negative_prompts_embeds = [negative_prompts_embeds] * nb_images
+        prompt_multi = [prompt] * nb_images
+        negative_prompts_multi = [negative_prompts] * nb_images
+
+        prompt_embeds = compel(prompt_multi)
+        negative_prompts_embeds = compel(negative_prompts_multi)
 
         images = pipe(prompt_embeds=prompt_embeds,
-                    num_inference_steps=20,
-                    guidance_scale=4,
+                    num_inference_steps=nb_steps,
+                    guidance_scale=guidance_scale,
                     negative_prompt_embeds=negative_prompts_embeds,
                     ).images
         
@@ -230,8 +232,7 @@ class MusicStyle(BaseModel):
 @app.post("/process")
 async def test(lyrics_analysis: LyricsAnalysis, music_style: MusicStyle, nb_images: int = 3):
     s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-    p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s)
-    p = p.to("cuda")
+    p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s).to("cuda")
     c = Compel(tokenizer=p.tokenizer, text_encoder=p.text_encoder)
 
     print("Data processing...")
@@ -257,10 +258,10 @@ async def test(lyrics_analysis: LyricsAnalysis, music_style: MusicStyle, nb_imag
     negative_prompts_embeds = c(negative_prompts_multi)
 
     print("Image generation...")
-    images = p(prompt_embeds=[prompt_embeds] * nb_images,
-                num_inference_steps=100,
-                guidance_scale=5,
-                negative_prompt_embeds=[negative_prompts_embeds] * nb_images,
+    images = p(prompt_embeds=prompt_embeds,
+                num_inference_steps=nb_steps,
+                guidance_scale=guidance_scale,
+                negative_prompt_embeds=negative_prompts_embeds,
                 ).images
 
     # Write the images to a temporary directory
@@ -282,8 +283,7 @@ async def test(lyrics_analysis: LyricsAnalysis, music_style: MusicStyle, nb_imag
 @app.post("/test")
 async def test(prompt: str, negative_prompts: str):
     s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-    p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s)
-    p = p.to("cuda")
+    p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s).to("cuda")
     c = Compel(tokenizer=p.tokenizer, text_encoder=p.text_encoder)
 
     print("Prompt embedding...")
@@ -292,8 +292,8 @@ async def test(prompt: str, negative_prompts: str):
 
     print("Image generation...")
     images = p(prompt_embeds=prompt_embeds,
-                num_inference_steps=100,
-                guidance_scale=5,
+                num_inference_steps=nb_steps,
+                guidance_scale=guidance_scale,
                 negative_prompt_embeds=negative_prompts_embeds,
                 ).images
     
