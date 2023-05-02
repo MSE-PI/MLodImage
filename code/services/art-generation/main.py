@@ -1,5 +1,7 @@
 import asyncio
 import json
+import os
+import tempfile
 import time
 import zipfile
 from fastapi import FastAPI
@@ -252,21 +254,26 @@ async def test(lyrics_analysis: LyricsAnalysis, music_style: MusicStyle, nb_imag
     negative_prompts_embeds = c(negative_prompts)
 
     print("Image generation...")
-    images = p(prompt_embeds=prompt_embeds * nb_images,
-                num_inference_steps=20,
-                guidance_scale=4,
-                negative_prompt_embeds=negative_prompts_embeds*nb_images,
+    images = p(prompt_embeds=[prompt_embeds] * nb_images,
+                num_inference_steps=100,
+                guidance_scale=5,
+                negative_prompt_embeds=[negative_prompts_embeds] * nb_images,
                 ).images
 
-    # Build an archive containing the images
-    archive = BytesIO()
-    with zipfile.ZipFile(archive, 'w') as zip_file:
+    # Write the images to a temporary directory
+    with tempfile.TemporaryDirectory() as tmpdirname:
         for i, image in enumerate(images):
-            image.save(f"image_{i}.png")
-            zip_file.write(f"image_{i}.png")
+            image.save(os.path.join(tmpdirname, f"image_{i}.png"))
+
+        # Build an archive containing the images
+        archive = BytesIO()
+        with zipfile.ZipFile(archive, 'w') as zip_file:
+            for root, dirs, files in os.walk(tmpdirname):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zip_file.write(file_path)
 
     return FileResponse(archive, media_type="application/zip", filename="images.zip")
-    
     
 
 @app.post("/test")
@@ -282,8 +289,8 @@ async def test(prompt: str, negative_prompts: str):
 
     print("Image generation...")
     images = p(prompt_embeds=prompt_embeds,
-                num_inference_steps=20,
-                guidance_scale=4,
+                num_inference_steps=100,
+                guidance_scale=5,
                 negative_prompt_embeds=negative_prompts_embeds,
                 ).images
     
