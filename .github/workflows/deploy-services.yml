@@ -21,6 +21,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
 
       - name: Setup k8s access to kubectl
         env:
@@ -47,8 +49,6 @@ jobs:
 
 
       - name: Run python script
-        with:
-          fetch-depth: 2
         env:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
           DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
