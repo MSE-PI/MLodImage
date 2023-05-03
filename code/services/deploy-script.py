@@ -12,6 +12,7 @@ SERVICE_NAMESPACE: str = "-"
 GPU_CORE: str = "tencent.com/vcuda-core: 20"
 GPU_MEMORY: str = "tencent.com/vcuda-memory: 64"
 FRONTEND_PATH: str = "../frontend/MLodImage/"
+FRONTEND_DIR_NAME: str = "MLodImage"
 
 
 def main():
@@ -59,12 +60,10 @@ def discover_services() -> None:
                 docker_build(service)
                 deploy_service(service)
 
-    for frontend in os.listdir("../frontend"):
-        if os.path.isdir(frontend):
-            # check if the frontend has a Dockerfile and is in the list of modified services
-            if os.path.isfile(f"{frontend}/Dockerfile") and frontend in modified_services:
-                docker_build(FRONTEND_PATH)
-                deploy_service(FRONTEND_PATH)
+    # check if the frontend has been modified
+    if FRONTEND_DIR_NAME in modified_services:
+        docker_build(FRONTEND_PATH)
+        deploy_service(FRONTEND_PATH)
 
 
 def docker_build(service_name: str) -> None:
