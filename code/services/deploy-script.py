@@ -13,6 +13,8 @@ GPU_CORE: str = "tencent.com/vcuda-core: 20"
 GPU_MEMORY: str = "tencent.com/vcuda-memory: 64"
 FRONTEND_PATH: str = "../frontend/MLodImage/"
 FRONTEND_DIR_NAME: str = "MLodImage"
+WEBAPP_PORT: int = 80
+SERVICES_PORT: int = 8000
 
 
 def main():
@@ -98,6 +100,7 @@ def deploy_service(service_dir: str) -> None:
     print(f"Deploying {service_name}...")
     # setup service environment variables
     os.environ["SERVICE"] = service_name
+    os.environ["PORT"] = str(SERVICES_PORT if service_name != "webapp" else WEBAPP_PORT)
     os.system(f"envsubst < ../k8s/service.yml | cat")
     status = os.system(f"envsubst < ../k8s/service.yml | kubectl apply -n {SERVICE_NAMESPACE} -f -")
     if status != 0:
