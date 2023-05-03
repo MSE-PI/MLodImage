@@ -6,7 +6,7 @@ import { useDropzone } from 'vue3-dropzone';
 const {getRootProps, getInputProps, isDragActive, ...rest} = useDropzone({
     onDrop,
     multiple: false,
-    accept: '.mp3, .ogg, .png, .txt',
+    accept: '.mp3, .ogg',
 });
 
 watch(store, () => {
@@ -25,14 +25,14 @@ function onDrop(acceptFile: any, rejectReason: any) {
 }
 
 function handleClickDeleteFile() {
-    store.file = null;
+    store.file = new File([], '');
     store.disabled = true;
 }
 </script>
 
 <template>
     <div style="height: 100%">
-        <div v-if="store.file" class="files">
+        <div v-if="store.file.name" class="files">
             <div class="file-item p-0">
                 <v-chip color="orange" label class="radius-8" size="x-large"><span class="wrap-class">{{ store.file.name }}</span></v-chip>
                 <v-btn class="delete-file mt-8" elevation="1" size="large" @click="handleClickDeleteFile()">
