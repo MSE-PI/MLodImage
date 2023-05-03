@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { store } from '@/utils/store';
 import { post, get } from './utils/api';
+import LoadingComponent from '@/components/LoadingComponent.vue';
 import FileUpload from '@/components/FileUpload.vue';
 
 const waitForResult = async (id: string) => {
@@ -17,12 +18,13 @@ const waitForResult = async (id: string) => {
 const handleClick = async () => {
     store.disabled = true;
     const result = await post('https://whisper-mlodimage.kube.isc.heia-fr.ch/test', store.file!);
-    if (result.id) {
-        console.log(result.id);
-        // waitForResult(result.id);
+    if (result) {
+        console.log(result);
+        //waitForResult(result.id);
     } else {
         console.log(result);
     }
+    store.disabled = false;
 };
 
 </script>
@@ -42,8 +44,16 @@ const handleClick = async () => {
                             MLodImage
                             <v-icon icon="mdi mdi-play-circle"/>
                         </v-card-title>
-                        <v-card-text class="card card-middle pb-2">
+                        <v-card-text v-if="!store.disabled || !store.file.name" class="card card-middle pb-2">
                             <FileUpload />
+                        </v-card-text>
+                        <v-card-text v-else class="card card-middle pb-2">
+                            <!--<v-progress-circular
+                                indeterminate
+                                color="orange"
+                                size="64"
+                            ></v-progress-circular>-->
+                            <LoadingComponent />
                         </v-card-text>
                         <v-card-actions class="pl-4 pr-4 pb-4 card">
                             <v-btn
