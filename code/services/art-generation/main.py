@@ -105,7 +105,6 @@ class MyService(Service):
                     negative_prompt_embeds=negative_prompts_embeds,
                     ).images
         
-
         results = []
         for image in images:
             result = BytesIO()
