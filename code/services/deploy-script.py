@@ -13,7 +13,6 @@ GPU_CORE: str = "tencent.com/vcuda-core: 20"
 GPU_MEMORY: str = "tencent.com/vcuda-memory: 64"
 
 
-
 def main():
     global DOCKER_REGISTRY, SERVICE_NAMESPACE
     # read environment variables
@@ -92,5 +91,4 @@ def deploy_service(service_name: str) -> None:
     print(f"{service_name} deployed!")
 
 if __name__ == '__main__':
-    #main()
-    discover_services()
+    main()
