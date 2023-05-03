@@ -211,13 +211,6 @@ app = FastAPI(
         "url": "https://choosealicense.com/licenses/agpl-3.0/",
     },
 )
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Include routers from other files
 app.include_router(service_router, tags=['Service'])

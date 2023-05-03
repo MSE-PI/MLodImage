@@ -56,11 +56,11 @@ spec:
         name: ${SERVICE}
         resources:
           requests:
-            tencent.com/vcuda-core: 20
-            tencent.com/vcuda-memory: 8
+            ${GPU_CORE}
+            ${GPU_MEMORY}
           limits:
-            tencent.com/vcuda-core: 20
-            tencent.com/vcuda-memory: 8
+            ${GPU_CORE}
+            ${GPU_MEMORY}
         ports:
         - containerPort: 8000
         env:

@@ -1,3 +1,8 @@
+accelerate==0.18.0
 common-code @ git+https://github.com/csia-pme/csia-pme.git@3b5c93944eb16b3a8dddc368db423cbd4148120a#subdirectory=common-code
-torch~=2.0.0
-python-multipart~=0.0.6
+compel==1.1.3
+diffusers==0.15.1
+tokenizers==0.13.3
+torch==2.0.0
+tqdm==4.65.0
+transformers==4.28.1
