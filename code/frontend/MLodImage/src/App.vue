@@ -19,7 +19,7 @@ const handleClick = async () => {
     const result = await post('https://whisper-mlodimage.kube.isc.heia-fr.ch/test', store.file!);
     if (result.id) {
         console.log(result.id);
-        // swaitForResult(result.id);
+        //waitForResult(result.id);
     } else {
         console.log(result);
     }
