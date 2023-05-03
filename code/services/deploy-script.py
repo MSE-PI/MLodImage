@@ -28,12 +28,14 @@ def get_modified_services() -> list:
     """
     # get list of modified files in the last commit
     modified_services = os.popen("git diff --name-only HEAD^ HEAD").read().split("\n")
+    modified_frontend = modified_services.copy()
+    print(modified_services)
 
     # filter for services/frontend folder
     modified_services = list(filter(lambda x: x.startswith("code/services/"), modified_services))
-    modified_frontend = list(filter(lambda x: x.startswith("code/frontend/"), modified_services))
+    modified_frontend = list(filter(lambda x: x.startswith("code/frontend/"), modified_frontend))
 
-    print(modified_frontend)
+    print(modified_services)
 
     # keep only the service/frontend name
     modified_services = list(map(lambda x: x.split("/")[2], modified_services))
