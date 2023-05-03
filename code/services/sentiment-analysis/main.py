@@ -1,7 +1,7 @@
 import asyncio
 import json
 import time
-from fastapi import FastAPI
+from fastapi import FastAPI, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from common_code.config import get_settings
@@ -24,6 +24,7 @@ import nltk
 import numpy as np
 from nltk import tokenize
 from nltk.corpus import stopwords
+from pydantic.main import BaseModel
 from spacy.language import Language
 from spacy_langdetect import LanguageDetector
 from operator import itemgetter
@@ -238,6 +239,19 @@ async def root():
 
 
 service_service: ServiceService | None = None
+
+
+class Data(BaseModel):
+    text: str
+
+
+@app.post("/process", tags=['Process'])
+def handle_process(data: Data):
+    print(data.text)
+    result = MyService().process({"text": TaskData(data=data.text, type=FieldDescriptionType.TEXT_PLAIN)})
+
+    data = json.loads(result["result"].data)
+    return data
 
 
 @app.on_event("startup")
