@@ -53,5 +53,6 @@ jobs:
           PYTHONUNBUFFERED: 1
         run: |
           cd code/services
-          python3 deploy-script.py
+          git diff --name-only HEAD^ HEAD
+          python3 deploy-script.py 
           
