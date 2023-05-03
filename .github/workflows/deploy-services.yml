@@ -21,6 +21,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
 
       - name: Setup k8s access to kubectl
         env:
@@ -53,5 +55,5 @@ jobs:
           PYTHONUNBUFFERED: 1
         run: |
           cd code/services
-          python3 deploy-script.py
+          python3 deploy-script.py 
           

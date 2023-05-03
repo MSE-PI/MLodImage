@@ -105,7 +105,6 @@ class MyService(Service):
                     negative_prompt_embeds=negative_prompts_embeds,
                     ).images
         
-
         results = []
         for image in images:
             result = BytesIO()
@@ -141,7 +140,7 @@ Generate art from lyrics and music style and return a PNG image.
 
 # Define the FastAPI application with information
 app = FastAPI(
-    title="Art Generation API",
+    title="Art Generation API.",
     description=api_description,
     version="0.0.1",
     swagger_ui_parameters={

@@ -14,7 +14,6 @@ GPU_MEMORY: str = "tencent.com/vcuda-memory: 64"
 
 services_changed = [str]
 
-
 def main():
     global DOCKER_REGISTRY, SERVICE_NAMESPACE
     # read environment variables
@@ -22,15 +21,35 @@ def main():
     SERVICE_NAMESPACE = os.environ["NAMESPACE"]
     discover_services()
 
+def get_modified_services() -> list:
+    """
+    This function returns a list of all services that have been modified in the last commit
+    """
+    # get list of modified files in the last commit
+    modified_services = os.popen("git diff --name-only HEAD^ HEAD").read().split("\n")
+
+    # filter for services folder
+    modified_services = list(filter(lambda x: x.startswith("code/services/"), modified_services))
+
+    # keep only the service name
+    modified_services = list(map(lambda x: x.split("/")[2], modified_services))
+
+    # remove duplicates
+    modified_services = list(set(modified_services))
+
+    return modified_services
 
 def discover_services() -> None:
     """
     This function discovers all the services in the services folder
     """
+    # get list of modified services
+    modified_services = get_modified_services()
+    print("Modified services: " + str(modified_services))
     for service in os.listdir():
         if os.path.isdir(service):
-            # check if the service ha a Dockerfile
-            if os.path.isfile(f"{service}/Dockerfile"):
+            # check if the service has a Dockerfile and is in the list of modified services
+            if os.path.isfile(f"{service}/Dockerfile") and service in modified_services:
                 docker_build(service)
                 deploy_service(service)
 
