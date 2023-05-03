@@ -11,8 +11,8 @@ DOCKER_REGISTRY: str = "-"
 SERVICE_NAMESPACE: str = "-"
 GPU_CORE: str = "tencent.com/vcuda-core: 20"
 GPU_MEMORY: str = "tencent.com/vcuda-memory: 64"
+FRONTEND_PATH: str = "../frontend/MLodImage/"
 
-services_changed = [str]
 
 def main():
     global DOCKER_REGISTRY, SERVICE_NAMESPACE
@@ -21,6 +21,7 @@ def main():
     SERVICE_NAMESPACE = os.environ["NAMESPACE"]
     discover_services()
 
+
 def get_modified_services() -> list:
     """
     This function returns a list of all services that have been modified in the last commit
@@ -28,16 +29,22 @@ def get_modified_services() -> list:
     # get list of modified files in the last commit
     modified_services = os.popen("git diff --name-only HEAD^ HEAD").read().split("\n")
 
-    # filter for services folder
+    # filter for services/frontend folder
     modified_services = list(filter(lambda x: x.startswith("code/services/"), modified_services))
+    modified_frontend = list(filter(lambda x: x.startswith("code/frontend/"), modified_services))
 
-    # keep only the service name
+    print(modified_frontend)
+
+    # keep only the service/frontend name
     modified_services = list(map(lambda x: x.split("/")[2], modified_services))
+    modified_frontend = list(map(lambda x: x.split("/")[2], modified_frontend))
 
     # remove duplicates
     modified_services = list(set(modified_services))
+    modified_frontend = list(set(modified_frontend))
 
-    return modified_services
+    return modified_services + modified_frontend
+
 
 def discover_services() -> None:
     """
@@ -52,6 +59,13 @@ def discover_services() -> None:
             if os.path.isfile(f"{service}/Dockerfile") and service in modified_services:
                 docker_build(service)
                 deploy_service(service)
+
+    for frontend in os.listdir("../frontend"):
+        if os.path.isdir(frontend):
+            # check if the frontend has a Dockerfile and is in the list of modified services
+            if os.path.isfile(f"{frontend}/Dockerfile") and frontend in modified_services:
+                docker_build(FRONTEND_PATH)
+                deploy_service(FRONTEND_PATH)
 
 
 def docker_build(service_name: str) -> None:
@@ -83,7 +97,7 @@ def deploy_service(service_name: str) -> None:
         os.environ["GPU_MEMORY"] = ""
     print(f"Deploying {service_name}...")
     # setup service environment variables
-    os.environ["SERVICE"] = service_name
+    os.environ["SERVICE"] = service_name if service_name != FRONTEND_PATH else "webapp"  # set name for frontend
     os.system(f"envsubst < ../k8s/service.yml | cat")
     status = os.system(f"envsubst < ../k8s/service.yml | kubectl apply -n {SERVICE_NAMESPACE} -f -")
     if status != 0:
