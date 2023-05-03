@@ -47,12 +47,13 @@ jobs:
 
 
       - name: Run python script
+        with:
+          fetch-depth: 2
         env:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
           DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
           PYTHONUNBUFFERED: 1
         run: |
           cd code/services
-          git diff --name-only HEAD^ HEAD
           python3 deploy-script.py 
           

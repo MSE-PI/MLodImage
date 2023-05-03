@@ -26,7 +26,7 @@ def get_modified_services() -> list:
     This function returns a list of all services that have been modified in the last commit
     """
     # get list of modified files in the last commit
-    modified_services = os.popen("git diff --name-only HEAD^").read().split("\n")
+    modified_services = os.popen("git diff --name-only HEAD^ HEAD").read().split("\n")
 
     # filter for services folder
     modified_services = list(filter(lambda x: x.startswith("code/services/"), modified_services))
@@ -48,6 +48,7 @@ def discover_services() -> None:
     """
     # get list of modified services
     modified_services = get_modified_services()
+    print("Modified services: " + str(modified_services))
     for service in os.listdir():
         if os.path.isdir(service):
             # check if the service has a Dockerfile and is in the list of modified services
