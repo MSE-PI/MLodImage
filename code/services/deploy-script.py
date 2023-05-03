@@ -37,9 +37,6 @@ def get_modified_services() -> list:
     # remove duplicates
     modified_services = list(set(modified_services))
 
-    # remove deploy-script.py
-    modified_services.remove("deploy-script.py")
-
     return modified_services
 
 def discover_services() -> None:
