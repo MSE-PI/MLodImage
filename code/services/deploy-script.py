@@ -66,12 +66,13 @@ def discover_services() -> None:
         deploy_service(FRONTEND_PATH)
 
 
-def docker_build(service_name: str) -> None:
+def docker_build(service_dir: str) -> None:
     """
     This function builds the docker image of a service and pushes it to the Container Registry
     """
-    print(f"Building {service_name}...")
-    status = os.system(f"docker build -t {DOCKER_REGISTRY}{service_name} {service_name}")
+    service_name: str = service_dir if service_dir != FRONTEND_PATH else "webapp"  # set name for frontend
+    print(f"Building {service_dir}...")
+    status = os.system(f"docker build -t {DOCKER_REGISTRY}{service_dir} {service_name}")
     if status != 0:
         raise Exception(f"Error while building {service_name}")
     print(f"{service_name} built, pushing to registry...")
@@ -80,12 +81,13 @@ def docker_build(service_name: str) -> None:
         raise Exception(f"Error while pushing {service_name} to registry")
 
 
-def deploy_service(service_name: str) -> None:
+def deploy_service(service_dir: str) -> None:
     """
     This function deploys a service on the Kubernetes cluster
     """
+    service_name: str = service_dir if service_dir != FRONTEND_PATH else "webapp"  # set name for frontend
     # check if the service has a .gpu file
-    if os.path.isfile(f"{service_name}/.gpu"):
+    if os.path.isfile(f"{service_dir}/.gpu"):
         # set GPU ENV variables
         print("GPU on : " + service_name)
         os.environ["GPU_CORE"] = GPU_CORE
@@ -95,7 +97,7 @@ def deploy_service(service_name: str) -> None:
         os.environ["GPU_MEMORY"] = ""
     print(f"Deploying {service_name}...")
     # setup service environment variables
-    os.environ["SERVICE"] = service_name if service_name != FRONTEND_PATH else "webapp"  # set name for frontend
+    os.environ["SERVICE"] = service_name
     os.system(f"envsubst < ../k8s/service.yml | cat")
     status = os.system(f"envsubst < ../k8s/service.yml | kubectl apply -n {SERVICE_NAMESPACE} -f -")
     if status != 0:
