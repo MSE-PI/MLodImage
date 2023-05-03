@@ -12,6 +12,7 @@ SERVICE_NAMESPACE: str = "-"
 GPU_CORE: str = "tencent.com/vcuda-core: 20"
 GPU_MEMORY: str = "tencent.com/vcuda-memory: 64"
 
+services_changed = [str]
 
 
 def main():
@@ -33,6 +34,7 @@ def discover_services() -> None:
                 docker_build(service)
                 deploy_service(service)
 
+
 def docker_build(service_name: str) -> None:
     """
     This function builds the docker image of a service and pushes it to the Container Registry
@@ -45,6 +47,8 @@ def docker_build(service_name: str) -> None:
     status = os.system(f"docker push {DOCKER_REGISTRY}{service_name}")
     if status != 0:
         raise Exception(f"Error while pushing {service_name} to registry")
+
+
 def deploy_service(service_name: str) -> None:
     """
     This function deploys a service on the Kubernetes cluster
@@ -62,7 +66,6 @@ def deploy_service(service_name: str) -> None:
     # setup service environment variables
     os.environ["SERVICE"] = service_name
     os.system(f"envsubst < ../k8s/service.yml | cat")
-    #return
     status = os.system(f"envsubst < ../k8s/service.yml | kubectl apply -n {SERVICE_NAMESPACE} -f -")
     if status != 0:
         raise Exception(f"Error while deploying " + service_name)
@@ -70,6 +73,7 @@ def deploy_service(service_name: str) -> None:
     if status != 0:
         raise Exception("Error while restarting " + service_name)
     print(f"{service_name} deployed!")
+
 
 if __name__ == '__main__':
     main()

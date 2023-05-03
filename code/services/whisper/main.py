@@ -166,7 +166,7 @@ async def startup_event():
 @app.post('/process')
 async def process(audio: UploadFile = File(...)):
     """
-    Route to do the speech recognition on the audio file given in the request.
+    Route to do the speech recognition on the audio file given in the request
     """
     # Check if audio file is given
     if audio is None:
