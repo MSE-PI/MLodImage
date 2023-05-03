@@ -71,8 +71,8 @@ def docker_build(service_dir: str) -> None:
     This function builds the docker image of a service and pushes it to the Container Registry
     """
     service_name: str = service_dir if service_dir != FRONTEND_PATH else "webapp"  # set name for frontend
-    print(f"Building {service_dir}...")
-    status = os.system(f"docker build -t {DOCKER_REGISTRY}{service_dir} {service_name}")
+    print(f"Building {service_name}...")
+    status = os.system(f"docker build -t {DOCKER_REGISTRY}{service_name} {service_dir}")
     if status != 0:
         raise Exception(f"Error while building {service_name}")
     print(f"{service_name} built, pushing to registry...")
