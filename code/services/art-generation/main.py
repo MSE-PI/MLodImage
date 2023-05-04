@@ -133,7 +133,9 @@ This service generates art from lyrics and music style.
 
 api_description = """
 Generate art from lyrics and music style. Returns a JSON object with the following fields:
-- images: an array of images in PNG format (base64 encoded)
+- `image1`: the first generated image 
+- `image2`: the second generated image
+- `image3`: the third generated image
 """
 
 # Define the FastAPI application with information
@@ -283,7 +285,7 @@ async def handle_process(data: Data):
 
     return FileResponse(archive_path, media_type="application/zip", filename="images.zip")
 
-@app.post("/test")
+@app.post("/test", tags=['Test'])
 async def test(prompt: str, negative_prompts: str):
     s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
     p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s).to("cuda")
