@@ -233,6 +233,7 @@ if __name__ == "__main__":
     pipeline.informations.status = PipelineStatus.WAITING
     threading.Thread(target=run_pipeline).start()
 
+    # Wait for pipeline to finish
     current_status = None
     while pipeline.informations.status != PipelineStatus.FINISHED:
         if pipeline.informations.status != current_status:
