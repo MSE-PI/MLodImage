@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, StreamingResponse, FileResponse
 from pydantic import BaseModel
 from tempfile import NamedTemporaryFile
+import zipfile
+import io
 
 # Disable warnings
 # import warnings
@@ -75,7 +77,9 @@ class PipelineInformation(BaseModel):
 class Pipeline(BaseModel):
     informations: PipelineInformation
     audio_path: str = None
+    audio_type: str = None
     result_path: str = None
+    result: zipfile.ZipFile = None
 
 piplines: list[Pipeline] = []
 audio_supported = ["audio/wav", "audio/mpeg", "audio/x-m4a"]
@@ -83,7 +87,7 @@ audio_supported = ["audio/wav", "audio/mpeg", "audio/x-m4a"]
 SERVICE_URL_TEMPLATE = "https://{}-mlodimage.kube.isc.heia-fr.ch"
 WHISPER_URL = SERVICE_URL_TEMPLATE.format("whisper")
 SENTIMENT_ANALYSIS_URL = SERVICE_URL_TEMPLATE.format("sentiment-analysis")
-MUSIC_STYLE_URL = SERVICE_URL_TEMPLATE.format("music-style")
+MUSIC_STYLE_URL = SERVICE_URL_TEMPLATE.format("genre-detection")
 ART_GENERATION_URL = SERVICE_URL_TEMPLATE.format("art-generation")
 SERVICE_ROUTE = "/process"
 
@@ -106,62 +110,63 @@ def run_pipeline():
     while get_waiting_pipeline() is not None:
         pipeline = get_waiting_pipeline()
 
-        # # Call whisper service
-        # pipeline.informations.status = PipelineStatus.RUNNING_WHISPER
-        # audio_file = open(pipeline.audio_path, "rb")
-        # audio_file_bytes = audio_file.read()
-        # print("Calling whisper service", WHISPER_URL + SERVICE_ROUTE)
-        # response = requests.post(WHISPER_URL + SERVICE_ROUTE, files={"audio": audio_file_bytes})
-        # audio_file.close()
-        # if response.status_code != 200:
-        #     print(response.text)
-        #     pipeline.informations.status = PipelineStatus.FAILED
-        #     continue
-        # lyrics = response.json()
+        # Call whisper service
+        pipeline.informations.status = PipelineStatus.RUNNING_WHISPER
+        audio_file = open(pipeline.audio_path, "rb")
+        audio_file_bytes = audio_file.read()
+        audio_type = pipeline.audio_type if pipeline.audio_type else "audio/wav"
+        print("Calling whisper service", WHISPER_URL + SERVICE_ROUTE)
+        response = requests.post(WHISPER_URL + SERVICE_ROUTE, files={"audio": (pipeline.audio_path, audio_file_bytes, audio_type)})
+        audio_file.close()
+        if response.status_code != 200:
+            print(response.text)
+            pipeline.informations.status = PipelineStatus.FAILED
+            continue
+        lyrics = response.json()
+        lyrics = lyrics["text"]
 
-        # # Call sentiment-analysis service
-        # pipeline.informations.status = PipelineStatus.RUNNING_SENTIMENT
-        # print("Calling sentiment-analysis service", SENTIMENT_ANALYSIS_URL + SERVICE_ROUTE)
-        # response = requests.post(SENTIMENT_ANALYSIS_URL + SERVICE_ROUTE, json={"text": lyrics})
-        # if response.status_code != 200:
-        #     print(response.text)
-        #     pipeline.informations.status = PipelineStatus.FAILED
-        #     continue
-        # sentiment = response.json()
+        # Call sentiment-analysis service
+        pipeline.informations.status = PipelineStatus.RUNNING_SENTIMENT
+        print("Calling sentiment-analysis service", SENTIMENT_ANALYSIS_URL + SERVICE_ROUTE)
+        response = requests.post(SENTIMENT_ANALYSIS_URL + SERVICE_ROUTE, json={"text": lyrics})
+        if response.status_code != 200:
+            print(response.text)
+            pipeline.informations.status = PipelineStatus.FAILED
+            continue
+        sentiment_analysis = response.json()
 
-        # # Call music-style service
-        # pipeline.informations.status = PipelineStatus.RUNNING_MUSIC_STYLE
-        # print("Calling music-style service", MUSIC_STYLE_URL + SERVICE_ROUTE)
-        # response = requests.post(MUSIC_STYLE_URL + SERVICE_ROUTE, json={"lyrics": lyrics})
+        # Call music-style service
+        pipeline.informations.status = PipelineStatus.RUNNING_MUSIC_STYLE
+        print("Calling music-style service", MUSIC_STYLE_URL + SERVICE_ROUTE)
+        # response = requests.post(MUSIC_STYLE_URL + SERVICE_ROUTE, files={"audio": (pipeline.audio_path, audio_file_bytes, audio_type)})
         # if response.status_code != 200:
         #     pipeline.informations.status = PipelineStatus.FAILED
         #     continue
         # music_style = response.json()
+        # print(music_style)
 
-        # # Call image-generation service
-        # pipeline.informations.status = PipelineStatus.RUNNING_IMAGE_GENERATION
-        # print("Calling image-generation service", ART_GENERATION_URL + SERVICE_ROUTE)
-        # image_data = {
-        #     "lyrics_analysis": {
-        #         "language": "en",
-        #         "sentiments": sentiment,
-        #         "top_words": []
-        #     },
-        #     "music_style": music_style
-        # }
-        # print(image_data)
-        # response = requests.post(ART_GENERATION_URL + SERVICE_ROUTE, json=image_data)
-        # if response.status_code != 200:
-        #     pipeline.informations.status = PipelineStatus.FAILED
-        #     continue
-        # result = response.json()
+        # Call image-generation service
+        pipeline.informations.status = PipelineStatus.RUNNING_IMAGE_GENERATION
+        print("Calling image-generation service", ART_GENERATION_URL + SERVICE_ROUTE)
+        image_data = {
+            "lyrics_analysis": sentiment_analysis,
+            "music_style": {
+                "style": "Hip-Hop",
+            }
+        }
+        response = requests.post(ART_GENERATION_URL + SERVICE_ROUTE, json=image_data)
+        if response.status_code != 200:
+            pipeline.informations.status = PipelineStatus.FAILED
+            print(response.text)
+            continue
 
-        # # Save result path
-        # pipeline.result_path = result["result_path"]
+        zip_file_content = response.content
 
+        # Save the zip file to disk
+        zf = zipfile.ZipFile(io.BytesIO(zip_file_content))
 
-        # Wait for 30 seconds
-        time.sleep(30)
+        # Save result path
+        pipeline.result = zf
 
         pipeline.informations.status = PipelineStatus.FINISHED
 
@@ -189,7 +194,7 @@ async def create_pipline(audio: UploadFile = File(...)):
         print(e)
         raise HTTPException(status_code=500, detail="Error while processing audio file")
     
-    pipeline = Pipeline(informations=PipelineInformation(id=pipeline_id, status=PipelineStatus.CREATED), audio_path=audio_path)
+    pipeline = Pipeline(informations=PipelineInformation(id=pipeline_id, status=PipelineStatus.CREATED), audio_path=audio_path, audio_type=audio.content_type)
     piplines.append(pipeline)
     return pipeline.informations
 
@@ -218,10 +223,24 @@ async def get_pipeline_status(pipeline_id: str):
 
 @app.get("/result/{pipeline_id}", tags=['Pipeline'])
 async def get_pipeline_result(pipeline_id: str):
-    for pipeline in piplines:
-        if pipeline.id == pipeline_id:
-            return pipeline.result_path
-    return None
+    # Get pipeline
+    pipeline = get_pipeline_by_id(pipeline_id)
+    if pipeline is None:
+        raise HTTPException(status_code=400, detail="Invalid pipeline id")
+    # Check if pipeline is finished
+    if pipeline.informations.status != PipelineStatus.FINISHED:
+        raise HTTPException(status_code=400, detail="Pipeline is not finished yet")
+    # Check if pipeline has a result
+    if pipeline.result is None:
+        raise HTTPException(status_code=400, detail="Pipeline has no result")
+    
+    # Return result
+    zf = pipeline.result
+    # write zip file to disk
+    with open(f"results/images_{pipeline.informations.id}.zip", "wb") as f:
+        f.write(zf.read())
+    
+    return FileResponse(f"results/images_{pipeline.informations.id}.zip", media_type="application/zip", filename=f"images_{pipeline.informations.id}.zip")
 
 if __name__ == "__main__":
     # Create test pipeline
