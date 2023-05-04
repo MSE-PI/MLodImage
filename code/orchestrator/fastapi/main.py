@@ -153,7 +153,6 @@ def run_pipeline():
                 "style": "Hip-Hop",
             }
         }
-        print(image_data)
         response = requests.post(ART_GENERATION_URL + SERVICE_ROUTE, json=image_data)
         if response.status_code != 200:
             pipeline.informations.status = PipelineStatus.FAILED
