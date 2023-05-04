@@ -226,7 +226,7 @@ class Data(BaseModel):
 async def handle_process(data: Data):
     print(data.lyrics_analysis)
     print(data.music_style)
-    
+
     result = MyService().process(
         {
             "lyrics_analysis": 
@@ -254,8 +254,10 @@ async def handle_process(data: Data):
                 for file in files:
                     file_path = os.path.join(root, file)
                     zip_file.write(file_path)
+            # Get archive path
+            archive_path = zip_file.filename
 
-    return FileResponse(archive, media_type="application/zip", filename="images.zip")
+    return FileResponse(archive_path, media_type="application/zip", filename="images.zip")
 
 @app.post("/test")
 async def test(prompt: str, negative_prompts: str):
