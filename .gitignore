@@ -715,6 +715,9 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/jupyternotebooks,pycharm,macos,linux,windows,visualstudiocode,latex,python,audio
 .idea/
 
+# wandb
+
+wandb/
 
 # Created by https://www.toptal.com/developers/gitignore/api/vue,vuejs
 # Edit at https://www.toptal.com/developers/gitignore?templates=vue,vuejs

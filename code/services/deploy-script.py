@@ -13,6 +13,8 @@ GPU_CORE: str = "tencent.com/vcuda-core: 20"
 GPU_MEMORY: str = "tencent.com/vcuda-memory: 64"
 FRONTEND_PATH: str = "../frontend/MLodImage/"
 FRONTEND_DIR_NAME: str = "MLodImage"
+ORCHESTRATOR_PATH: str = "../orchestrator/fastapi/"
+ORCHESTRATOR_DIR_NAME: str = "fastapi"
 WEBAPP_PORT: int = 80
 SERVICES_PORT: int = 8000
 
@@ -32,20 +34,24 @@ def get_modified_services() -> list:
     # get list of modified files in the last commit
     modified_services = os.popen("git diff --name-only HEAD^ HEAD").read().split("\n")
     modified_frontend = modified_services.copy()
+    modified_orchestrator = modified_services.copy()
 
     # filter for services/frontend folder
     modified_services = list(filter(lambda x: x.startswith("code/services/"), modified_services))
     modified_frontend = list(filter(lambda x: x.startswith("code/frontend/"), modified_frontend))
+    modified_orchestrator = list(filter(lambda x: x.startswith("code/orchestrator/"), modified_orchestrator))
 
     # keep only the service/frontend name
     modified_services = list(map(lambda x: x.split("/")[2], modified_services))
     modified_frontend = list(map(lambda x: x.split("/")[2], modified_frontend))
+    modified_orchestrator = list(map(lambda x: x.split("/")[2], modified_orchestrator))
 
     # remove duplicates
     modified_services = list(set(modified_services))
     modified_frontend = list(set(modified_frontend))
+    modified_orchestrator = list(set(modified_orchestrator))
 
-    return modified_services + modified_frontend
+    return modified_services + modified_frontend + modified_orchestrator
 
 
 def discover_services() -> None:
@@ -67,12 +73,21 @@ def discover_services() -> None:
         docker_build(FRONTEND_PATH)
         deploy_service(FRONTEND_PATH)
 
+    # check if the orchestrator has been modified
+    if ORCHESTRATOR_DIR_NAME in modified_services:
+        docker_build(ORCHESTRATOR_PATH)
+        deploy_service(ORCHESTRATOR_PATH)
+
 
 def docker_build(service_dir: str) -> None:
     """
     This function builds the docker image of a service and pushes it to the Container Registry
     """
-    service_name: str = service_dir if service_dir != FRONTEND_PATH else "webapp"  # set name for frontend
+    service_name: str = service_dir
+    if service_dir == FRONTEND_PATH:
+        service_name = "webapp"
+    if service_dir == ORCHESTRATOR_PATH:
+        service_name = "orchestrator"
     print(f"Building {service_name}...")
     status = os.system(f"docker build -t {DOCKER_REGISTRY}{service_name} {service_dir}")
     if status != 0:
@@ -87,7 +102,11 @@ def deploy_service(service_dir: str) -> None:
     """
     This function deploys a service on the Kubernetes cluster
     """
-    service_name: str = service_dir if service_dir != FRONTEND_PATH else "webapp"  # set name for frontend
+    service_name: str = service_dir
+    if service_dir == FRONTEND_PATH:
+        service_name = "webapp"
+    if service_dir == ORCHESTRATOR_PATH:
+        service_name = "orchestrator"
     # check if the service has a .gpu file
     if os.path.isfile(f"{service_dir}/.gpu"):
         # set GPU ENV variables
