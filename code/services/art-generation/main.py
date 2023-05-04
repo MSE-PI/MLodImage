@@ -22,9 +22,9 @@ from common_code.service.enums import ServiceStatus, FieldDescriptionType
 
 # Imports required by the service's model
 from io import BytesIO
-import torch
 from compel import Compel
 from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler, AutoencoderKL, UNet2DConditionModel, LMSDiscreteScheduler
+import torch
 
 # Disable warnings
 # import warnings
@@ -81,38 +81,6 @@ class MyService(Service):
         )
 
     def process(self, data):
-        # # Get the data from the input fields as bytes
-        # lyrics_analysis = data["lyrics_analysis"].data
-        # music_style = data["music_style"].data
-        # settings = data["settings"].data
-
-        # # transform bytes to json
-        # lyrics_analysis = json.loads(lyrics_analysis)
-        # music_style = json.loads(music_style)
-        # settings = json.loads(settings)
-        # nb_images = settings["nb_images"]
-
-        # prompt = prompt_builder(lyrics_analysis, music_style)
-
-        # prompt_multi = [prompt] * nb_images
-        # negative_prompts_multi = [negative_prompts] * nb_images
-
-        # prompt_embeds = compel(prompt_multi)
-        # negative_prompts_embeds = compel(negative_prompts_multi)
-
-        # images = pipe(prompt_embeds=prompt_embeds,
-        #             num_inference_steps=nb_steps,
-        #             guidance_scale=guidance_scale,
-        #             negative_prompt_embeds=negative_prompts_embeds,
-        #             ).images
-        
-        # results = []
-        # for image in images:
-        #     result = BytesIO()
-        #     image.save(result, format="PNG")
-        #     result.seek(0)
-        #     results.append(result.read())
-
         print("Data processing...")
 
         lyrics_analysis = json.loads(data["lyrics_analysis"].data)
@@ -132,46 +100,28 @@ class MyService(Service):
         negative_prompts_embeds = compel(negative_prompts_multi)
 
         print("Image generation...")
-        images = compel(prompt_embeds=prompt_embeds,
+        images = pipe(prompt_embeds=prompt_embeds,
                     num_inference_steps=nb_steps,
                     guidance_scale=guidance_scale,
                     negative_prompt_embeds=negative_prompts_embeds,
                     ).images
+        
+        print("Type:",type(images[0]))
 
-        # Write the images to a temporary directory
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            print("Save images as temp files")
-            for i, image in enumerate(images):
-                image.save(os.path.join(tmpdirname, f"image_{i}.png"))
-
-            # Build an archive containing the images
-            print("Building archive")
-            archive = BytesIO()
-            with zipfile.ZipFile(archive, 'w') as zip_file:
-                print("Add images to the archive")
-                for root, dirs, files in os.walk(tmpdirname):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        zip_file.write(file_path)
-
-        return FileResponse(archive, media_type="application/zip", filename="images.zip")
-
-        # return {
-        #     "result": {
-        #         "image1": TaskData(
-        #             data=results[0],
-        #             type=FieldDescriptionType.IMAGE_PNG,
-        #         ),
-        #         "image2": TaskData(
-        #             data=results[1],
-        #             type=FieldDescriptionType.IMAGE_PNG,
-        #         ),
-        #         "image3": TaskData(
-        #             data=results[2],
-        #             type=FieldDescriptionType.IMAGE_PNG,
-        #         ),
-        #     }
-        # }
+        return {
+            "image1": TaskData(
+                data=images[0],
+                type=FieldDescriptionType.IMAGE_PNG,
+            ),
+            "image2": TaskData(
+                data=images[1],
+                type=FieldDescriptionType.IMAGE_PNG,
+            ),
+            "image3": TaskData(
+                data=images[2],
+                type=FieldDescriptionType.IMAGE_PNG,
+            )
+        }
 
 api_summary = """
 This service generates art from lyrics and music style.
@@ -277,6 +227,7 @@ async def handle_process(data: Data):
     print(data.lyrics_analysis)
     print(data.music_style)
     print(data.nb_images)
+
     result = MyService().process(
         {
             "lyrics_analysis": 
@@ -284,11 +235,28 @@ async def handle_process(data: Data):
             "music_style": 
                 TaskData(data=data.music_style, type=FieldDescriptionType.JSON)
         })
+    
+    print("Result", result)
 
-    data = json.loads(result["result"].data)
-    return data
+    images = []
     
-    
+    # Write the images to a temporary directory
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        print("Save images as temp files")
+        for i, image in enumerate(images):
+            image.save(os.path.join(tmpdirname, f"image_{i}.png"))
+
+        # Build an archive containing the images
+        print("Building archive")
+        archive = BytesIO()
+        with zipfile.ZipFile(archive, 'w') as zip_file:
+            print("Add images to the archive")
+            for root, dirs, files in os.walk(tmpdirname):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zip_file.write(file_path)
+
+    return FileResponse(archive, media_type="application/zip", filename="images.zip")
 
 @app.post("/test")
 async def test(prompt: str, negative_prompts: str):
