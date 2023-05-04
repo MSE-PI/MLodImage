@@ -79,7 +79,6 @@ class Pipeline(BaseModel):
     audio_path: str = None
     audio_type: str = None
     result_path: str = None
-    result: zipfile.ZipFile = None
 
 piplines: list[Pipeline] = []
 audio_supported = ["audio/wav", "audio/mpeg", "audio/x-m4a"]
@@ -154,19 +153,26 @@ def run_pipeline():
                 "style": "Hip-Hop",
             }
         }
+        print(image_data)
         response = requests.post(ART_GENERATION_URL + SERVICE_ROUTE, json=image_data)
         if response.status_code != 200:
             pipeline.informations.status = PipelineStatus.FAILED
             print(response.text)
             continue
-
+        
+        print("Creating zip file..")
         zip_file_content = response.content
 
         # Save the zip file to disk
         zf = zipfile.ZipFile(io.BytesIO(zip_file_content))
 
-        # Save result path
-        pipeline.result = zf
+        # Write zip file to disk
+        archive_path = f"results/images_{pipeline.informations.id}.zip"
+        with zipfile.ZipFile(archive_path, "w") as f:
+            for file in zf.namelist():
+                f.writestr(file, zf.read(file))
+
+        pipeline.result_path = archive_path
 
         pipeline.informations.status = PipelineStatus.FINISHED
 
@@ -200,19 +206,18 @@ async def create_pipline(audio: UploadFile = File(...)):
 
 @app.get("/run/{pipeline_id}", tags=['Pipeline'])
 async def submit_pipeline(pipeline_id: str):
-    print(pipeline_id)
-    print(piplines)
-    
     pipeline = get_pipeline_by_id(pipeline_id)
     if pipeline is None:
         raise HTTPException(status_code=400, detail="Invalid pipeline id")
+    if pipeline.informations.status != PipelineStatus.CREATED:
+        raise HTTPException(status_code=400, detail="The pipeline was already submitted")
     
     pipeline.informations.status = PipelineStatus.WAITING
     
     # Execute pipeline in a thread
     threading.Thread(target=run_pipeline).start()
 
-    return pipeline.informations
+    return PipelineInformation(id=pipeline_id, status=PipelineStatus.WAITING)
 
 @app.get("/status/{pipeline_id}", tags=['Pipeline'])
 async def get_pipeline_status(pipeline_id: str):
@@ -230,17 +235,8 @@ async def get_pipeline_result(pipeline_id: str):
     # Check if pipeline is finished
     if pipeline.informations.status != PipelineStatus.FINISHED:
         raise HTTPException(status_code=400, detail="Pipeline is not finished yet")
-    # Check if pipeline has a result
-    if pipeline.result is None:
-        raise HTTPException(status_code=400, detail="Pipeline has no result")
     
-    # Return result
-    zf = pipeline.result
-    # write zip file to disk
-    with open(f"results/images_{pipeline.informations.id}.zip", "wb") as f:
-        f.write(zf.read())
-    
-    return FileResponse(f"results/images_{pipeline.informations.id}.zip", media_type="application/zip", filename=f"images_{pipeline.informations.id}.zip")
+    return FileResponse(pipeline.result_path, media_type="application/zip", filename=pipeline.result_path)
 
 if __name__ == "__main__":
     # Create test pipeline
