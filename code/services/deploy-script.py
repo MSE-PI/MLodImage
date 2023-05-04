@@ -83,7 +83,11 @@ def docker_build(service_dir: str) -> None:
     """
     This function builds the docker image of a service and pushes it to the Container Registry
     """
-    service_name: str = service_dir if service_dir != FRONTEND_PATH else "webapp"  # set name for frontend
+    service_name: str = service_dir
+    if service_dir == FRONTEND_PATH:
+        service_name = "webapp"
+    if service_dir == ORCHESTRATOR_PATH:
+        service_name = "orchestrator"
     print(f"Building {service_name}...")
     status = os.system(f"docker build -t {DOCKER_REGISTRY}{service_name} {service_dir}")
     if status != 0:
@@ -98,7 +102,11 @@ def deploy_service(service_dir: str) -> None:
     """
     This function deploys a service on the Kubernetes cluster
     """
-    service_name: str = service_dir if service_dir != FRONTEND_PATH else "webapp"  # set name for frontend
+    service_name: str = service_dir
+    if service_dir == FRONTEND_PATH:
+        service_name = "webapp"
+    if service_dir == ORCHESTRATOR_PATH:
+        service_name = "orchestrator"
     # check if the service has a .gpu file
     if os.path.isfile(f"{service_dir}/.gpu"):
         # set GPU ENV variables
