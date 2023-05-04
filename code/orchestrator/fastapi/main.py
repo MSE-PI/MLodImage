@@ -160,6 +160,7 @@ def run_pipeline():
         # # Save result path
         # pipeline.result_path = result["result_path"]
 
+
         # Wait for 30 seconds
         time.sleep(30)
 
