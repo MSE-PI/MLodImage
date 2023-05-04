@@ -37,7 +37,7 @@ from minio import Minio
 
 # audio configuration TODO: move to config file
 AUDIO_SUPPORTED = ["audio/wav", "audio/mpeg", "audio/x-m4a"]
-AUDIO_DURATION = 3000  # equals 3 seconds
+AUDIO_DURATION = 3000  #equals 3 seconds
 SAMPLE_RATE = 44100
 N_CHANNELS = 1
 
