@@ -226,8 +226,7 @@ class Data(BaseModel):
 async def handle_process(data: Data):
     print(data.lyrics_analysis)
     print(data.music_style)
-    print(data.nb_images)
-
+    
     result = MyService().process(
         {
             "lyrics_analysis": 
