@@ -137,12 +137,12 @@ def run_pipeline():
         # Call music-style service
         pipeline.informations.status = PipelineStatus.RUNNING_MUSIC_STYLE
         print("Calling music-style service", MUSIC_STYLE_URL + SERVICE_ROUTE)
-        # response = requests.post(MUSIC_STYLE_URL + SERVICE_ROUTE, files={"audio": (pipeline.audio_path, audio_file_bytes, audio_type)})
-        # if response.status_code != 200:
-        #     pipeline.informations.status = PipelineStatus.FAILED
-        #     continue
-        # music_style = response.json()
-        # print(music_style)
+        response = requests.post(MUSIC_STYLE_URL + SERVICE_ROUTE, files={"audio": (pipeline.audio_path, audio_file_bytes, audio_type)})
+        if response.status_code != 200:
+            pipeline.informations.status = PipelineStatus.FAILED
+            continue
+        music_style = response.json()
+
 
         # Call image-generation service
         pipeline.informations.status = PipelineStatus.RUNNING_IMAGE_GENERATION
@@ -150,7 +150,7 @@ def run_pipeline():
         image_data = {
             "lyrics_analysis": sentiment_analysis,
             "music_style": {
-                "style": "Hip-Hop",
+                "style": music_style["genre_top"],
             }
         }
         response = requests.post(ART_GENERATION_URL + SERVICE_ROUTE, json=image_data)
