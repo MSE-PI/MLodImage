@@ -1,5 +1,5 @@
 """
-Service responsible for detecting the musical genre of a song.
+Service responsible for detecting the musical genre of a song .
 """
 
 __author__ = "Benjamin Pasquier"
