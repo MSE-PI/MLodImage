@@ -1,5 +1,5 @@
 """
-Service responsible for detecting the musical genre of a song .
+Service responsible for detecting the musical genre of a song.
 """
 
 __author__ = "Benjamin Pasquier"
@@ -37,15 +37,15 @@ from minio import Minio
 
 # audio configuration TODO: move to config file
 AUDIO_SUPPORTED = ["audio/wav", "audio/mpeg", "audio/x-m4a"]
-AUDIO_DURATION = 3000 # equals 3 seconds
+AUDIO_DURATION = 3000  # equals 3 seconds
 SAMPLE_RATE = 44100
 N_CHANNELS = 1
 
 # minio configuration
 MINIO_HOSTNAME = 'minio1.isc.heia-fr.ch:9018'
 MINIO_BUCKET_NAME = 'pi-aimarket-mlodimage'
-MINIO_ACCESS_KEY = os.get.environ.get('MINIO_USR')
-MINIO_SECRET_KEY = os.get.environ.get('MINIO_PWD')
+MINIO_ACCESS_KEY = os.environ.get('MINIO_USR')
+MINIO_SECRET_KEY = os.environ.get('MINIO_PWD')
 MINIO_CLIENT = Minio(MINIO_HOSTNAME, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=True)
 
 # download the model from Minio and save it locally
