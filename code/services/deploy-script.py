@@ -39,7 +39,7 @@ def get_modified_services() -> list:
     # filter for services/frontend folder
     modified_services = list(filter(lambda x: x.startswith("code/services/"), modified_services))
     modified_frontend = list(filter(lambda x: x.startswith("code/frontend/"), modified_frontend))
-    modified_orchestrator = list(filter(lambda x: x.startswith("code/orchestrator/"), modified_frontend))
+    modified_orchestrator = list(filter(lambda x: x.startswith("code/orchestrator/"), modified_orchestrator))
 
     # keep only the service/frontend name
     modified_services = list(map(lambda x: x.split("/")[2], modified_services))
