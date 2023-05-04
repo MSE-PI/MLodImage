@@ -1,9 +1,13 @@
 from enum import Enum
+import requests
+import time
 import uuid
-from fastapi import FastAPI, File, UploadFile
+import threading
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, StreamingResponse, FileResponse
 from pydantic import BaseModel
+from tempfile import NamedTemporaryFile
 
 # Disable warnings
 # import warnings
@@ -62,67 +66,147 @@ class PipelineStatus(str, Enum):
     RUNNING_MUSIC_STYLE = "running_music_style"
     RUNNING_IMAGE_GENERATION = "running_image_generation"
     FINISHED = "finished"
+    FAILED = "failed"
 
-class Pipeline(BaseModel):
+class PipelineInformation(BaseModel):
     id: str
     status: PipelineStatus
-    input: bytes = None
+
+class Pipeline(BaseModel):
+    informations: PipelineInformation
+    audio_path: str = None
     result_path: str = None
 
 
-piplines = []
+piplines: list[Pipeline] = []
+audio_supported = ["audio/wav", "audio/mpeg", "audio/x-m4a"]
+
+SERVICE_URL_TEMPLATE = "https://{}-mlodimage.kube.isc.heia-fr.ch"
+WHISPER_URL = SERVICE_URL_TEMPLATE.format("whisper")
+SENTIMENT_ANALYSIS_URL = SERVICE_URL_TEMPLATE.format("sentiment-analysis")
+MUSIC_STYLE_URL = SERVICE_URL_TEMPLATE.format("music-style")
+ART_GENERATION_URL = SERVICE_URL_TEMPLATE.format("art-generation")
+SERVICE_ROUTE = "/process"
 
 # Get first waiting pipeline
 def get_waiting_pipeline():
     for pipeline in piplines:
-        if pipeline.status == PipelineStatus.WAITING:
+        if pipeline.informations.status == PipelineStatus.WAITING:
             return pipeline
     return None
 
-async def run_pipeline():
+# Get pipeline by id
+def get_pipeline_by_id(pipeline_id: str):
+    for pipeline in piplines:
+        if pipeline.informations.id == pipeline_id:
+            return pipeline
+    return None
+
+# Execute all the waiting pipelines
+def run_pipeline():
     while get_waiting_pipeline() is not None:
         pipeline = get_waiting_pipeline()
-        
-        pipeline.status = PipelineStatus.RUNNING_WHISPER
+
         # Call whisper service
+        pipeline.informations.status = PipelineStatus.RUNNING_WHISPER
+        # audio_file = open(pipeline.audio_path, "rb")
+        # response = requests.post(WHISPER_URL + SERVICE_ROUTE, files={"audio": audio_file})
+        # audio_file.close()
+        # if response.status_code != 200:
+        #     pipeline.informations.status = PipelineStatus.FAILED
+        #     continue
+        # lyrics = response.json()
 
-        pipeline.status = PipelineStatus.RUNNING_SENTIMENT
-        # Call sentiment-analysis service
+        # # Call sentiment-analysis service
+        # pipeline.informations.status = PipelineStatus.RUNNING_SENTIMENT
+        # response = requests.post(SENTIMENT_ANALYSIS_URL + SERVICE_ROUTE, json={"text": lyrics})
+        # if response.status_code != 200:
+        #     pipeline.informations.status = PipelineStatus.FAILED
+        #     continue
+        # sentiment = response.json()
 
-        pipeline.status = PipelineStatus.RUNNING_MUSIC_STYLE
-        # Call music-style service
+        # # Call music-style service
+        # pipeline.informations.status = PipelineStatus.RUNNING_MUSIC_STYLE
+        # response = requests.post(MUSIC_STYLE_URL + SERVICE_ROUTE, json={"lyrics": lyrics})
+        # if response.status_code != 200:
+        #     pipeline.informations.status = PipelineStatus.FAILED
+        #     continue
+        # music_style = response.json()
 
-        pipeline.status = PipelineStatus.RUNNING_IMAGE_GENERATION
-        # Call image-generation service
+        # # Call image-generation service
+        # pipeline.informations.status = PipelineStatus.RUNNING_IMAGE_GENERATION
+        # image_data = {
+        #     "lyrics_analysis": {
+        #         "language": "en",
+        #         "sentiments": sentiment,
+        #         "top_words": []
+        #     },
+        #     "music_style": music_style
+        # }
+        # response = requests.post(ART_GENERATION_URL + SERVICE_ROUTE, json=image_data)
+        # if response.status_code != 200:
+        #     pipeline.informations.status = PipelineStatus.FAILED
+        #     continue
+        # result = response.json()
 
-        # Save result path
-        pipeline.result_path = "result_path"
+        # # Save result path
+        # pipeline.result_path = result["result_path"]
 
-        pipeline.status = PipelineStatus.FINISHED
+        # Wait for 30 seconds
+        time.sleep(30)
 
-@app.get("/create", tags=['Pipeline'])
+        pipeline.informations.status = PipelineStatus.FINISHED
+
+@app.post("/create", tags=['Pipeline'])
 async def create_pipline(audio: UploadFile = File(...)):
     # Generate a random id
     pipeline_id = str(uuid.uuid4())
-    pipeline = Pipeline(id=pipeline_id, status=PipelineStatus.CREATED, input=await audio.read())
-    return pipeline
 
-@app.post("/run/{pipeline_id}", tags=['Pipeline'])
-async def submit_pipeline(pipeline_id: str,):
-    for pipeline in piplines:
-        if pipeline.id == pipeline_id:
-            pipeline.status = PipelineStatus.WAITING
-            run_pipeline(pipeline)
-            return pipeline
-    return None
+    # Check if audio file is given
+    if audio is None:
+        raise HTTPException(status_code=400, detail="No audio file given")
+    # Check if audio file is valid
+    if audio.content_type not in audio_supported:
+        raise HTTPException(status_code=400, detail="Invalid audio file given")
     
+    # Save the audio file to the audio folder
+    tmp = audio.filename.split('.')
+    file_type: str = tmp[len(tmp) - 1]
+    audio_path = None
+    try:
+        with NamedTemporaryFile(suffix="."+file_type, dir="./audios/", delete=False) as f:
+            f.write(await audio.read())
+            audio_path = f.name
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Error while processing audio file")
+    
+    pipeline = Pipeline(informations=PipelineInformation(id=pipeline_id, status=PipelineStatus.CREATED), audio_path=audio_path)
+    piplines.append(pipeline)
+    return pipeline.informations
+
+@app.get("/run/{pipeline_id}", tags=['Pipeline'])
+async def submit_pipeline(pipeline_id: str):
+    print(pipeline_id)
+    print(piplines)
+    
+    pipeline = get_pipeline_by_id(pipeline_id)
+    if pipeline is None:
+        raise HTTPException(status_code=400, detail="Invalid pipeline id")
+    
+    pipeline.informations.status = PipelineStatus.WAITING
+    
+    # Execute pipeline in a thread
+    threading.Thread(target=run_pipeline).start()
+
+    return pipeline.informations
 
 @app.get("/status/{pipeline_id}", tags=['Pipeline'])
 async def get_pipeline_status(pipeline_id: str):
-    for pipeline in piplines:
-        if pipeline.id == pipeline_id:
-            return pipeline.status
-    return None
+    pipline = get_pipeline_by_id(pipeline_id)
+    if pipline is None:
+        raise HTTPException(status_code=400, detail="Invalid pipeline id")
+    return pipline.informations.status
 
 @app.get("/result/{pipeline_id}", tags=['Pipeline'])
 async def get_pipeline_result(pipeline_id: str):
