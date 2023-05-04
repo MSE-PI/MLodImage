@@ -171,6 +171,7 @@ def run_pipeline():
             for file in zf.namelist():
                 f.writestr(file, zf.read(file))
 
+
         pipeline.result_path = archive_path
 
         pipeline.informations.status = PipelineStatus.FINISHED
