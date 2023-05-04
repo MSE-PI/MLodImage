@@ -23,8 +23,8 @@ from common_code.service.enums import ServiceStatus, FieldDescriptionType
 # Imports required by the service's model
 from io import BytesIO
 from compel import Compel
-from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler, AutoencoderKL, UNet2DConditionModel, LMSDiscreteScheduler
-import torch
+from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
+#import torch
 
 # Disable warnings
 # import warnings
@@ -227,12 +227,23 @@ async def handle_process(data: Data):
     print(data.lyrics_analysis)
     print(data.music_style)
 
+    print("Parsing data")
+    lyrics_analysis = data.lyrics_analysis
+    music_style = data.music_style
+
+    lyrics_analysis = json.dumps(lyrics_analysis.dict())
+    music_style = json.dumps(music_style.dict())
+
+    print(lyrics_analysis)
+    print(music_style)
+
+    print("Calling service")
     result = MyService().process(
         {
             "lyrics_analysis": 
-                TaskData(data=data.lyrics_analysis, type=FieldDescriptionType.JSON), 
+                TaskData(data=lyrics_analysis, type=FieldDescriptionType.APPLICATION_JSON), 
             "music_style": 
-                TaskData(data=data.music_style, type=FieldDescriptionType.JSON)
+                TaskData(data=music_style, type=FieldDescriptionType.APPLICATION_JSON)
         })
     
     print("Result", result)
