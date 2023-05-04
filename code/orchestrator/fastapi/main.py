@@ -107,26 +107,32 @@ def run_pipeline():
     while get_waiting_pipeline() is not None:
         pipeline = get_waiting_pipeline()
 
-        # Call whisper service
-        pipeline.informations.status = PipelineStatus.RUNNING_WHISPER
+        # # Call whisper service
+        # pipeline.informations.status = PipelineStatus.RUNNING_WHISPER
         # audio_file = open(pipeline.audio_path, "rb")
-        # response = requests.post(WHISPER_URL + SERVICE_ROUTE, files={"audio": audio_file})
+        # audio_file_bytes = audio_file.read()
+        # print("Calling whisper service", WHISPER_URL + SERVICE_ROUTE)
+        # response = requests.post(WHISPER_URL + SERVICE_ROUTE, files={"audio": audio_file_bytes})
         # audio_file.close()
         # if response.status_code != 200:
+        #     print(response.text)
         #     pipeline.informations.status = PipelineStatus.FAILED
         #     continue
         # lyrics = response.json()
 
         # # Call sentiment-analysis service
         # pipeline.informations.status = PipelineStatus.RUNNING_SENTIMENT
+        # print("Calling sentiment-analysis service", SENTIMENT_ANALYSIS_URL + SERVICE_ROUTE)
         # response = requests.post(SENTIMENT_ANALYSIS_URL + SERVICE_ROUTE, json={"text": lyrics})
         # if response.status_code != 200:
+        #     print(response.text)
         #     pipeline.informations.status = PipelineStatus.FAILED
         #     continue
         # sentiment = response.json()
 
         # # Call music-style service
         # pipeline.informations.status = PipelineStatus.RUNNING_MUSIC_STYLE
+        # print("Calling music-style service", MUSIC_STYLE_URL + SERVICE_ROUTE)
         # response = requests.post(MUSIC_STYLE_URL + SERVICE_ROUTE, json={"lyrics": lyrics})
         # if response.status_code != 200:
         #     pipeline.informations.status = PipelineStatus.FAILED
@@ -135,6 +141,7 @@ def run_pipeline():
 
         # # Call image-generation service
         # pipeline.informations.status = PipelineStatus.RUNNING_IMAGE_GENERATION
+        # print("Calling image-generation service", ART_GENERATION_URL + SERVICE_ROUTE)
         # image_data = {
         #     "lyrics_analysis": {
         #         "language": "en",
@@ -143,6 +150,7 @@ def run_pipeline():
         #     },
         #     "music_style": music_style
         # }
+        # print(image_data)
         # response = requests.post(ART_GENERATION_URL + SERVICE_ROUTE, json=image_data)
         # if response.status_code != 200:
         #     pipeline.informations.status = PipelineStatus.FAILED
@@ -214,3 +222,24 @@ async def get_pipeline_result(pipeline_id: str):
         if pipeline.id == pipeline_id:
             return pipeline.result_path
     return None
+
+# main function
+if __name__ == "__main__":
+    # Create test pipeline
+    piplines.append(Pipeline(informations=PipelineInformation(id="test", status=PipelineStatus.CREATED), audio_path="./audios/music.wav"))
+    pipeline = get_pipeline_by_id("test")
+
+    # Run pipeline
+    pipeline.informations.status = PipelineStatus.WAITING
+    threading.Thread(target=run_pipeline).start()
+
+    current_status = None
+    while pipeline.informations.status != PipelineStatus.FINISHED:
+        if pipeline.informations.status != current_status:
+            print(pipeline.informations.status)
+            current_status = pipeline.informations.status
+
+        if pipeline.informations.status == PipelineStatus.FAILED:
+            break
+
+        time.sleep(1)
