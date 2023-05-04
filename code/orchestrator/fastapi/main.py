@@ -224,7 +224,6 @@ async def get_pipeline_result(pipeline_id: str):
             return pipeline.result_path
     return None
 
-# main function
 if __name__ == "__main__":
     # Create test pipeline
     piplines.append(Pipeline(informations=PipelineInformation(id="test", status=PipelineStatus.CREATED), audio_path="./audios/music.wav"))
