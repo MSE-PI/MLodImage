@@ -22,9 +22,9 @@ from common_code.service.enums import ServiceStatus, FieldDescriptionType
 
 # Imports required by the service's model
 from io import BytesIO
-import torch
 from compel import Compel
 from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler, AutoencoderKL, UNet2DConditionModel, LMSDiscreteScheduler
+import torch
 
 # Disable warnings
 # import warnings
@@ -33,7 +33,8 @@ from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler, Autoencod
 settings = get_settings()
 model_id = "stabilityai/stable-diffusion-2-base"
 guidance_scale = 5
-nb_steps = 80
+nb_steps = 50
+nb_images = 3
 
 scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
 pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler).to("cuda")
@@ -80,54 +81,46 @@ class MyService(Service):
         )
 
     def process(self, data):
-        # Get the data from the input fields as bytes
-        lyrics_analysis = data["lyrics_analysis"].data
-        music_style = data["music_style"].data
-        settings = data["settings"].data
+        print("Data processing...")
 
-        # transform bytes to json
-        lyrics_analysis = json.loads(lyrics_analysis)
-        music_style = json.loads(music_style)
-        settings = json.loads(settings)
-        nb_images = settings["nb_images"]
+        lyrics_analysis = json.loads(data["lyrics_analysis"].data)
+        print(lyrics_analysis)
+
+        music_style = json.loads(data["music_style"].data)
+        print(music_style)
 
         prompt = prompt_builder(lyrics_analysis, music_style)
-
+        print(prompt)
+        
         prompt_multi = [prompt] * nb_images
         negative_prompts_multi = [negative_prompts] * nb_images
 
+        print("Prompt embedding...")
         prompt_embeds = compel(prompt_multi)
         negative_prompts_embeds = compel(negative_prompts_multi)
 
+        print("Image generation...")
         images = pipe(prompt_embeds=prompt_embeds,
                     num_inference_steps=nb_steps,
                     guidance_scale=guidance_scale,
                     negative_prompt_embeds=negative_prompts_embeds,
                     ).images
         
-        results = []
-        for image in images:
-            result = BytesIO()
-            image.save(result, format="PNG")
-            result.seek(0)
-            results.append(result.read())
+        print("Type:",type(images[0]))
 
-        # NOTE that the result must be a dictionary with the keys being the field names set in the data_out_fields
         return {
-            "result": {
-                "image1": TaskData(
-                    data=results[0],
-                    type=FieldDescriptionType.IMAGE_PNG,
-                ),
-                "image2": TaskData(
-                    data=results[1],
-                    type=FieldDescriptionType.IMAGE_PNG,
-                ),
-                "image3": TaskData(
-                    data=results[2],
-                    type=FieldDescriptionType.IMAGE_PNG,
-                ),
-            }
+            "image1": TaskData(
+                data=images[0],
+                type=FieldDescriptionType.IMAGE_PNG,
+            ),
+            "image2": TaskData(
+                data=images[1],
+                type=FieldDescriptionType.IMAGE_PNG,
+            ),
+            "image3": TaskData(
+                data=images[2],
+                type=FieldDescriptionType.IMAGE_PNG,
+            )
         }
 
 api_summary = """
@@ -135,7 +128,8 @@ This service generates art from lyrics and music style.
 """
 
 api_description = """
-Generate art from lyrics and music style and return a PNG image.
+Generate art from lyrics and music style. Returns a JSON object with the following fields:
+- images: an array of images in PNG format (base64 encoded)
 """
 
 # Define the FastAPI application with information
@@ -165,14 +159,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # Redirect to docs
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse("/docs", status_code=301)
 
 service_service: ServiceService | None = None
-
 
 @app.on_event("startup")
 async def startup_event():
@@ -211,7 +203,6 @@ async def startup_event():
     # Announce the service to its engine
     asyncio.ensure_future(announce())
 
-
 @app.on_event("shutdown")
 async def shutdown_event():
     # Global variable
@@ -227,57 +218,45 @@ class LyricsAnalysis(BaseModel):
 class MusicStyle(BaseModel):
     style: str
 
-# Custom route to bypass the engine
-@app.post("/process")
-async def test(lyrics_analysis: LyricsAnalysis, music_style: MusicStyle, nb_images: int = 3):
-    s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-    p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s).to("cuda")
-    c = Compel(tokenizer=p.tokenizer, text_encoder=p.text_encoder)
+class Data(BaseModel):
+    lyrics_analysis: LyricsAnalysis
+    music_style: MusicStyle
 
-    print("Data processing...")
-    # decode the json
-    lyrics_analysis = {
-        "language": lyrics_analysis.language,
-        "sentiments": lyrics_analysis.sentiments,
-        "top_words": lyrics_analysis.top_words
-    }
+@app.post("/process", tags=['Process'])
+async def handle_process(data: Data):
+    print(data.lyrics_analysis)
+    print(data.music_style)
+    print(data.nb_images)
 
-    music_style = {
-        "style": music_style.style
-    }
-
-    prompt = prompt_builder(lyrics_analysis, music_style)
-    print(prompt)
+    result = MyService().process(
+        {
+            "lyrics_analysis": 
+                TaskData(data=data.lyrics_analysis, type=FieldDescriptionType.JSON), 
+            "music_style": 
+                TaskData(data=data.music_style, type=FieldDescriptionType.JSON)
+        })
     
-    prompt_multi = [prompt] * nb_images
-    negative_prompts_multi = [negative_prompts] * nb_images
+    print("Result", result)
 
-    print("Prompt embedding...")
-    prompt_embeds = c(prompt_multi)
-    negative_prompts_embeds = c(negative_prompts_multi)
-
-    print("Image generation...")
-    images = p(prompt_embeds=prompt_embeds,
-                num_inference_steps=nb_steps,
-                guidance_scale=guidance_scale,
-                negative_prompt_embeds=negative_prompts_embeds,
-                ).images
-
+    images = []
+    
     # Write the images to a temporary directory
     with tempfile.TemporaryDirectory() as tmpdirname:
+        print("Save images as temp files")
         for i, image in enumerate(images):
             image.save(os.path.join(tmpdirname, f"image_{i}.png"))
 
         # Build an archive containing the images
+        print("Building archive")
         archive = BytesIO()
         with zipfile.ZipFile(archive, 'w') as zip_file:
+            print("Add images to the archive")
             for root, dirs, files in os.walk(tmpdirname):
                 for file in files:
                     file_path = os.path.join(root, file)
                     zip_file.write(file_path)
 
     return FileResponse(archive, media_type="application/zip", filename="images.zip")
-    
 
 @app.post("/test")
 async def test(prompt: str, negative_prompts: str):
