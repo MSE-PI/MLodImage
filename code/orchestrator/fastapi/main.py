@@ -77,7 +77,6 @@ class Pipeline(BaseModel):
     audio_path: str = None
     result_path: str = None
 
-
 piplines: list[Pipeline] = []
 audio_supported = ["audio/wav", "audio/mpeg", "audio/x-m4a"]
 
