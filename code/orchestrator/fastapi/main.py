@@ -55,7 +55,8 @@ async def root():
     return RedirectResponse("/docs", status_code=301)
 
 class PipelineStatus(str, Enum):
-    PENDING = "pending"
+    CREATED = "created"
+    WAITING = "waiting"
     RUNNING_WHISPER = "running_whisper"
     RUNNING_SENTIMENT = "running_sentiment"
     RUNNING_MUSIC_STYLE = "running_music_style"
@@ -65,25 +66,56 @@ class PipelineStatus(str, Enum):
 class Pipeline(BaseModel):
     id: str
     status: PipelineStatus
+    input: bytes = None
     result_path: str = None
+
 
 piplines = []
 
+# Get first waiting pipeline
+def get_waiting_pipeline():
+    for pipeline in piplines:
+        if pipeline.status == PipelineStatus.WAITING:
+            return pipeline
+    return None
+
+async def run_pipeline():
+    while get_waiting_pipeline() is not None:
+        pipeline = get_waiting_pipeline()
+        
+        pipeline.status = PipelineStatus.RUNNING_WHISPER
+        # Call whisper service
+
+        pipeline.status = PipelineStatus.RUNNING_SENTIMENT
+        # Call sentiment-analysis service
+
+        pipeline.status = PipelineStatus.RUNNING_MUSIC_STYLE
+        # Call music-style service
+
+        pipeline.status = PipelineStatus.RUNNING_IMAGE_GENERATION
+        # Call image-generation service
+
+        # Save result path
+        pipeline.result_path = "result_path"
+
+        pipeline.status = PipelineStatus.FINISHED
+
 @app.get("/create", tags=['Pipeline'])
-async def create_pipline():
+async def create_pipline(audio: UploadFile = File(...)):
     # Generate a random id
     pipeline_id = str(uuid.uuid4())
-    pipeline = Pipeline(id=pipeline_id, status=PipelineStatus.PENDING)
+    pipeline = Pipeline(id=pipeline_id, status=PipelineStatus.CREATED, input=await audio.read())
     return pipeline
 
-# Run pipeline
 @app.post("/run/{pipeline_id}", tags=['Pipeline'])
-async def run_pipeline(pipeline_id: str, audio: UploadFile = File(...)):
+async def submit_pipeline(pipeline_id: str,):
     for pipeline in piplines:
         if pipeline.id == pipeline_id:
-            pipeline.status = PipelineStatus.FINISHED
-            break
-    return pipeline
+            pipeline.status = PipelineStatus.WAITING
+            run_pipeline(pipeline)
+            return pipeline
+    return None
+    
 
 @app.get("/status/{pipeline_id}", tags=['Pipeline'])
 async def get_pipeline_status(pipeline_id: str):
