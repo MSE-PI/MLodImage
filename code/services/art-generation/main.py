@@ -24,7 +24,6 @@ from common_code.service.enums import ServiceStatus, FieldDescriptionType
 from io import BytesIO
 from compel import Compel
 from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
-#import torch
 
 # Disable warnings
 # import warnings
@@ -33,11 +32,11 @@ from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
 settings = get_settings()
 model_id = "stabilityai/stable-diffusion-2-base"
 guidance_scale = 5
-nb_steps = 50
+nb_steps = 1
 nb_images = 3
 
 scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler).to("cuda")
+pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler)#.to("cuda")
 compel = Compel(tokenizer=pipe.tokenizer, text_encoder=pipe.text_encoder)
 
 negative_prompts = "font, typo, signature, text, watermark, cropped, disfigured, duplicate, error, jpeg artifacts, low quality, lowres, mutated hands, out of frame, worst quality"
@@ -82,6 +81,7 @@ class MyService(Service):
 
     def process(self, data):
         print("Data processing...")
+        print(data)
 
         lyrics_analysis = json.loads(data["lyrics_analysis"].data)
         print(lyrics_analysis)
@@ -106,19 +106,23 @@ class MyService(Service):
                     negative_prompt_embeds=negative_prompts_embeds,
                     ).images
         
-        print("Type:",type(images[0]))
+        images_bytes = []
+        for image in images:
+            image_bytes = BytesIO()
+            image.save(image_bytes, format="PNG")
+            images_bytes.append(image_bytes.getvalue())
 
         return {
             "image1": TaskData(
-                data=images[0],
+                data=images_bytes[0],
                 type=FieldDescriptionType.IMAGE_PNG,
             ),
             "image2": TaskData(
-                data=images[1],
+                data=images_bytes[1],
                 type=FieldDescriptionType.IMAGE_PNG,
             ),
             "image3": TaskData(
-                data=images[2],
+                data=images_bytes[2],
                 type=FieldDescriptionType.IMAGE_PNG,
             )
         }
@@ -224,18 +228,11 @@ class Data(BaseModel):
 
 @app.post("/process", tags=['Process'])
 async def handle_process(data: Data):
-    print(data.lyrics_analysis)
-    print(data.music_style)
-
-    print("Parsing data")
     lyrics_analysis = data.lyrics_analysis
     music_style = data.music_style
 
     lyrics_analysis = json.dumps(lyrics_analysis.dict())
     music_style = json.dumps(music_style.dict())
-
-    print(lyrics_analysis)
-    print(music_style)
 
     print("Calling service")
     result = MyService().process(
@@ -245,28 +242,44 @@ async def handle_process(data: Data):
             "music_style": 
                 TaskData(data=music_style, type=FieldDescriptionType.APPLICATION_JSON)
         })
-    
-    print("Result", result)
+
+    print("Result:", type(result))
 
     images = []
-    
-    # Write the images to a temporary directory
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        print("Save images as temp files")
-        for i, image in enumerate(images):
-            image.save(os.path.join(tmpdirname, f"image_{i}.png"))
+    images.append(result["image1"].data)
+    images.append(result["image2"].data)
+    images.append(result["image3"].data)
 
-        # Build an archive containing the images
-        print("Building archive")
-        archive = BytesIO()
-        with zipfile.ZipFile(archive, 'w') as zip_file:
-            print("Add images to the archive")
-            for root, dirs, files in os.walk(tmpdirname):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    zip_file.write(file_path)
-            # Get archive path
-            archive_path = zip_file.filename
+    print("Save images as temp files")
+    image_dir = "images"
+    os.makedirs(image_dir, exist_ok=True)
+    for i, image in enumerate(images):
+        # image is bytes
+        image_path = os.path.join(image_dir, f"image{i}.png")
+        print("image_path", image_path)
+        with open(image_path, "wb") as f:
+            f.write(image)
+
+    # Build an archive containing the images
+    print("Building archive")
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, 'w') as zip_file:
+        print("Add images to the archive")
+        for root, dirs, files in os.walk(image_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                zip_file.write(file_path)
+
+    # Save the archive on disk
+    print("Save archive on disk")
+    archive_path = "images.zip"
+    with open(archive_path, "wb") as f:
+        f.write(archive.getvalue())
+
+
+
+    print("Archive", type(archive.getvalue()))
+    print("Archive path", archive_path)
 
     return FileResponse(archive_path, media_type="application/zip", filename="images.zip")
 
