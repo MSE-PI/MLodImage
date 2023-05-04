@@ -163,7 +163,6 @@ def run_pipeline():
         zip_file_content = response.content
 
         # Save the zip file to disk
-        archive_path = f"results/images_{pipeline.informations.id}.zip"
         zf = zipfile.ZipFile(io.BytesIO(zip_file_content))
 
         # Save result path
@@ -234,8 +233,14 @@ async def get_pipeline_result(pipeline_id: str):
     # Check if pipeline has a result
     if pipeline.result is None:
         raise HTTPException(status_code=400, detail="Pipeline has no result")
+    
     # Return result
-    return StreamingResponse(pipeline.result, media_type="application/zip", headers={"Content-Disposition": f"attachment; filename=images_{pipeline_id}.zip"})
+    zf = pipeline.result
+    # write zip file to disk
+    with open(f"results/images_{pipeline.informations.id}.zip", "wb") as f:
+        f.write(zf.read())
+    
+    return FileResponse(f"results/images_{pipeline.informations.id}.zip", media_type="application/zip", filename=f"images_{pipeline.informations.id}.zip")
 
 if __name__ == "__main__":
     # Create test pipeline
