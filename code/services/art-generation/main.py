@@ -32,11 +32,11 @@ from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
 settings = get_settings()
 model_id = "stabilityai/stable-diffusion-2-base"
 guidance_scale = 5
-nb_steps = 1
+nb_steps = 50
 nb_images = 3
 
 scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler)#.to("cuda")
+pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler).to("cuda")
 compel = Compel(tokenizer=pipe.tokenizer, text_encoder=pipe.text_encoder)
 
 negative_prompts = "font, typo, signature, text, watermark, cropped, disfigured, duplicate, error, jpeg artifacts, low quality, lowres, mutated hands, out of frame, worst quality"
