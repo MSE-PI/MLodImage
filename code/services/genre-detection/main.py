@@ -44,8 +44,8 @@ N_CHANNELS = 1
 # minio configuration
 MINIO_HOSTNAME = 'minio1.isc.heia-fr.ch:9018'
 MINIO_BUCKET_NAME = 'pi-aimarket-mlodimage'
-MINIO_ACCESS_KEY = os.get.environ.get('MINIO_USR')
-MINIO_SECRET_KEY = os.get.environ.get('MINIO_PWD')
+MINIO_ACCESS_KEY = os.environ.get('MINIO_USR')
+MINIO_SECRET_KEY = os.environ.get('MINIO_PWD')
 MINIO_CLIENT = Minio(MINIO_HOSTNAME, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=True)
 
 # download the model from Minio and save it locally
