@@ -163,10 +163,10 @@ async def startup_event():
     tasks_service.start()
 
 
-@app.post('/test')
-async def test(audio: UploadFile = File(...)):
+@app.post('/process')
+async def process(audio: UploadFile = File(...)):
     """
-    Route to do the speech recognition on the audio file given in the request.
+    Route to do the speech recognition on the audio file given in the request
     """
     # Check if audio file is given
     if audio is None:

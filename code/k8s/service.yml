@@ -17,7 +17,7 @@ spec:
           service:
             name: ${SERVICE}
             port:
-              number: 8000
+              number: ${PORT}
   tls:
     - hosts:
         - ${SERVICE}-mlodimage.kube.isc.heia-fr.ch
@@ -30,7 +30,7 @@ metadata:
   name: ${SERVICE}
 spec:
   ports:
-    - port: 8000
+    - port: ${PORT}
   selector:
     app: ${SERVICE}
 ---
@@ -62,7 +62,7 @@ spec:
             ${GPU_CORE}
             ${GPU_MEMORY}
         ports:
-        - containerPort: 8000
+        - containerPort: ${PORT}
         env:
           - name: MINIO_PWD
             valueFrom:
