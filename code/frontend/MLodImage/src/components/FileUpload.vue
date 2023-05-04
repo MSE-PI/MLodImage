@@ -3,23 +3,19 @@ import { store } from '@/utils/store';
 import { watch } from 'vue';
 import { useDropzone } from 'vue3-dropzone';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const {getRootProps, getInputProps, isDragActive, ...rest} = useDropzone({
     onDrop,
     multiple: false,
-    accept: '.mp3, .ogg',
+    accept: '.mp3, .ogg, .wav',
 });
 
-watch(store, () => {
-    console.log('file_item', store);
-});
+watch(store, () => {});
 
-watch(isDragActive, () => {
-    console.log('isDragActive', isDragActive.value, rest);
-});
+watch(isDragActive, () => {});
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function onDrop(acceptFile: any, rejectReason: any) {
-    console.log(acceptFile);
-    console.log(rejectReason);
     store.file = acceptFile[0];
     store.disabled = false;
 }
@@ -35,7 +31,7 @@ function handleClickDeleteFile() {
         <div v-if="store.file.name" class="files">
             <div class="file-item p-0">
                 <v-chip color="orange" label class="radius-8" size="x-large"><span class="wrap-class">{{ store.file.name }}</span></v-chip>
-                <v-btn class="delete-file mt-8" elevation="1" size="large" @click="handleClickDeleteFile()">
+                <v-btn class="delete-file mt-8" elevation="1" size="large" @click="handleClickDeleteFile()" prepend-icon="mdi mdi-delete">
                     Delete
                 </v-btn>
             </div>

@@ -12,9 +12,11 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "jszip": "^3.10.1",
     "vue": "^3.2.47",
     "vue3-dropzone": "^2.0.1",
-    "vuetify": "^3.1.15"
+    "vuetify": "^3.1.15",
+    "vuex": "^4.1.0"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.2.0",
