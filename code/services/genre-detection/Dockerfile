@@ -10,8 +10,7 @@ ENV MINIO_PWD=x
 
 WORKDIR /app
 
-RUN apt-get update -y  && apt-get install git -y
-RUN apt-get install -y ffmpeg
+RUN apt-get update -y  && apt-get install -y ffmpeg
 
 # copy requirements.txt
 COPY ./requirements.txt /app/requirements.txt
