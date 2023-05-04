@@ -17,7 +17,7 @@ const waitForResult = async (id: string) => {
 
 const handleClick = async () => {
     store.disabled = true;
-    const result = await post('https://whisper-mlodimage.kube.isc.heia-fr.ch/test', store.file!);
+    const result = await post('https://whisper-mlodimage.kube.isc.heia-fr.ch/process', store.file!);
     if (result) {
         console.log(result);
         //waitForResult(result.id);
