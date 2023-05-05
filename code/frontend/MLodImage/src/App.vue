@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Status, StatusMessage, store } from '@/utils/store';
+import { Status, StatusMessage, MessageIcon, MessageColor, store } from '@/utils/store';
 import { get, getResults, post } from './utils/api';
 import LoadingComponent from '@/components/LoadingComponent.vue';
 import FileUpload from '@/components/FileUpload.vue';
@@ -13,6 +13,7 @@ const resetStore = () => {
     store.execution_id = '';
     store.status = Status.IDLE;
     store.status_message = StatusMessage.IDLE;
+    store.message_icon = 'mdi mdi-clock-outline';
     store.progress = 0;
 };
 
@@ -58,17 +59,64 @@ const changeStatusMessage = (status: Status) => {
     }
 };
 
+const changeStatusIcon = (status: Status) => {
+    switch (status) {
+        case Status.WAITING:
+            return MessageIcon.WAITING;
+        case Status.RUNNING_WHISPER:
+            return MessageIcon.RUNNING_WHISPER;
+        case Status.RUNNING_SENTIMENT:
+            return MessageIcon.RUNNING_SENTIMENT;
+        case Status.RUNNING_MUSIC_STYLE:
+            return MessageIcon.RUNNING_MUSIC_STYLE;
+        case Status.RUNNING_IMAGE_GENERATION:
+            return MessageIcon.RUNNING_IMAGE_GENERATION;
+        case Status.FINISHED:
+            return MessageIcon.FINISHED;
+        case Status.FAILED:
+            return MessageIcon.FAILED;
+        default:
+            return MessageIcon.IDLE;
+    }
+};
+
+const changeMessageColor = (status: Status) => {
+    switch (status) {
+        case Status.WAITING:
+            return MessageColor.WAITING;
+        case Status.RUNNING_WHISPER:
+            return MessageColor.RUNNING_WHISPER;
+        case Status.RUNNING_SENTIMENT:
+            return MessageColor.RUNNING_SENTIMENT;
+        case Status.RUNNING_MUSIC_STYLE:
+            return MessageColor.RUNNING_MUSIC_STYLE;
+        case Status.RUNNING_IMAGE_GENERATION:
+            return MessageColor.RUNNING_IMAGE_GENERATION;
+        case Status.FINISHED:
+            return MessageColor.FINISHED;
+        case Status.FAILED:
+            return MessageColor.FAILED;
+        default:
+            return MessageColor.IDLE;
+    }
+};
+
 const waitForResult = async () => {
     const result = await get(`https://orchestrator-mlodimage.kube.isc.heia-fr.ch/status/${store.execution_id}`);
     if (!result) {
         setTimeout(waitForResult, TIMEOUT);
         store.status = Status.FAILED;
         store.status_message = changeStatusMessage(Status.FAILED);
+        store.message_icon = changeStatusIcon(Status.FAILED);
+        store.message_color = changeMessageColor(Status.FAILED);
         store.progress = adaptProgress(Status.FAILED);
+        store.disabled = false;
         return;
     } else {
         store.status = result;
         store.status_message = changeStatusMessage(result);
+        store.message_icon = changeStatusIcon(store.status);
+        store.message_color = changeMessageColor(store.status);
         store.progress = adaptProgress(store.status);
         if (store.status == Status.FINISHED) {
             setTimeout(getResult, TIMEOUT);
@@ -85,10 +133,18 @@ const waitForResult = async () => {
 const launchPipeline = async () => {
     const result = await get(`https://orchestrator-mlodimage.kube.isc.heia-fr.ch/run/${store.execution_id}`);
     if (!result) {
+        store.status = Status.FAILED;
+        store.status_message = changeStatusMessage(Status.FAILED);
+        store.message_icon = changeStatusIcon(Status.FAILED);
+        store.message_color = changeMessageColor(Status.FAILED);
+        store.progress = adaptProgress(Status.FAILED);
+        store.disabled = false;
         return;
     } else {
         store.status = result.status;
         store.status_message = changeStatusMessage(result.status);
+        store.message_icon = changeStatusIcon(store.status);
+        store.message_color = changeMessageColor(store.status);
         if (result.status == Status.WAITING) {
             setTimeout(waitForResult, TIMEOUT);
             return;
@@ -103,6 +159,8 @@ const handleClick = async () => {
         store.execution_id = result.id;
         store.status = result.status;
         store.status_message = changeStatusMessage(result.status);
+        store.message_icon = changeStatusIcon(store.status);
+        store.message_color = changeMessageColor(store.status);
         launchPipeline();
     } else {
         store.disabled = false;
@@ -127,6 +185,15 @@ const getResult = async () => {
     }
 };
 
+const downloadImage = (index: number) => {
+    const link = document.createElement('a');
+    link.href = store.result.images[index];
+    link.download = `result_${index}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 const downloadAll = () => {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(store.result.zip_file);
@@ -145,13 +212,13 @@ const downloadAll = () => {
                 <v-col cols="12" sm="8" md="6" lg="4">
                     <v-card
                             width="100%"
-                            height="50vh"
+                            min-height="400px"
                             class="mx-auto gradient radius-8 card-container"
                             elevation="10"
                     >
                         <v-card-title class="headline card">
                             MLodImage
-                            <v-icon icon="mdi mdi-play-circle"/>
+                            <v-icon icon="mdi mdi-music-note-eighth"></v-icon>
                         </v-card-title>
                         <v-card-text
                                 v-if="
@@ -161,7 +228,7 @@ const downloadAll = () => {
                                 store.status == Status.RUNNING_MUSIC_STYLE ||
                                 store.status == Status.RUNNING_SENTIMENT ||
                                 store.status == Status.RUNNING_IMAGE_GENERATION"
-                                class="card card-middle pb-2"
+                                class="card card-middle"
                         >
                             <v-progress-linear
                                     class="radius-8"
@@ -171,14 +238,16 @@ const downloadAll = () => {
                                     height="10"
                             />
                             <v-chip
-                                    color="orange"
+                                    :color="store.message_color"
                                     text-color="white"
                                     class="card mt-2"
-                                    size="x-large"
+                                    size="large"
+                                    label
+                                    :prepend-icon="store.message_icon"
                             >
                                 {{ store.status_message }}
                             </v-chip>
-                            <LoadingComponent/>
+                            <LoadingComponent />
                         </v-card-text>
                         <v-card-text
                                 v-else-if="store.status == Status.FINISHED || store.status == Status.FAILED"
@@ -187,20 +256,33 @@ const downloadAll = () => {
                                     v-if="store.status == Status.FINISHED && store.result.images.length > 0"
                                     hide-delimiters
                                     sm="12"
-                                    class="radius-8"
+                                    class="pt-0 radius-8"
                                     show-arrows="hover"
+                                    style="height: auto"
                             >
                                 <v-carousel-item
                                         v-for="(image, index) in store.result.images"
                                         :key="index"
                                         :src="image"
-                                />
+                                >
+                                    <div class="title d-flex flex-row card-middle pt-4 pl-4">
+                                        <v-btn color="pink"
+                                               dark
+                                               large
+                                               @click="downloadImage(index)"
+                                               icon="mdi mdi-file-download-outline"
+                                               title="Download image"
+                                        />
+                                    </div>
+                                </v-carousel-item>
                             </v-carousel>
                             <v-chip
                                     v-if="store.status == Status.FAILED"
                                     color="red"
                                     text-color="white"
                                     class="card"
+                                    size="large"
+                                    prepend-icon="mdi mdi-alert-octagon-outline"
                             >
                                 Error
                             </v-chip>
@@ -221,11 +303,12 @@ const downloadAll = () => {
                                             variant="flat"
                                             size="x-large"
                                             class="radius-8"
+                                            height="100%"
                                             block
                                             v-bind="store"
                                             @click="downloadAll"
-                                            prepend-icon="mdi mdi-download"
-                                            icon=""
+                                            prepend-icon="mdi mdi-folder-arrow-down-outline"
+                                            title="Download all files"
                                     >
                                         Download
                                     </v-btn>
@@ -234,13 +317,14 @@ const downloadAll = () => {
                                     <v-btn
                                             elevation="2"
                                             color="orange"
-                                            variant="flat"
-                                            size="x-large"
+                                            variant="elevated"
+                                            size="large"
                                             class="radius-8"
                                             v-bind="store"
                                             block
                                             @click="resetStore"
                                             icon="mdi mdi-refresh"
+                                            title="Reset"
                                     >
                                     </v-btn>
                                 </v-col>
@@ -257,10 +341,9 @@ const downloadAll = () => {
                                             block
                                             v-bind="store"
                                             @click="handleClick"
-                                            icon=""
-                                            prepend-icon="mdi mdi-play-circle"
+                                            :prepend-icon="store.status == Status.IDLE ? 'mdi mdi-play' : 'mdi mdi-clock-outline'"
                                     >
-                                        Launch
+                                        {{ store.status == Status.IDLE ? 'Launch' : ' Running...' }}
                                     </v-btn>
                                 </v-col>
                             </v-row>
