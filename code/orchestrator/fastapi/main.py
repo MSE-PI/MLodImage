@@ -106,11 +106,10 @@ def delete_pipeline(pipeline_id: str):
 # Get first waiting pipeline
 def get_waiting_pipeline():
     for pipeline in pipelines:
-        if pipeline.informations.status == PipelineStatus.FINISHED:
-            delete_pipeline(pipeline.informations.id)
-            continue
         if pipeline.informations.status == PipelineStatus.WAITING:
             return pipeline
+        if pipeline.informations.status == PipelineStatus.FINISHED:
+            delete_pipeline(pipeline.informations.id)
     return None
 
 # Get pipeline by id
@@ -192,6 +191,14 @@ def run_pipeline():
         pipeline.result_path = archive_path
 
         pipeline.informations.status = PipelineStatus.RESULT_READY
+
+@app.get("/reload", tags=['Pipeline'])
+async def reload():
+    '''
+    Reload the pipeline list
+    '''
+    threading.Thread(target=run_pipeline).start()
+    return {"message": "Reloaded"}
 
 @app.post("/create", tags=['Pipeline'])
 async def create_pipeline(audio: UploadFile = File(...)):
