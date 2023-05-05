@@ -13,7 +13,8 @@ const resetStore = () => {
     store.execution_id = '';
     store.status = Status.IDLE;
     store.status_message = StatusMessage.IDLE;
-    store.message_icon = 'mdi mdi-clock-outline';
+    store.message_icon = MessageIcon.IDLE;
+    store.message_color = MessageColor.IDLE;
     store.progress = 0;
 };
 
