@@ -30,7 +30,7 @@ const adaptProgress = (status: Status) => {
             return 60;
         case Status.RUNNING_IMAGE_GENERATION:
             return 80;
-        case Status.FINISHED:
+        case Status.RESULT_READY:
             return 100;
         case Status.FAILED:
             return 100;
@@ -51,6 +51,8 @@ const changeStatusMessage = (status: Status) => {
             return StatusMessage.RUNNING_MUSIC_STYLE;
         case Status.RUNNING_IMAGE_GENERATION:
             return StatusMessage.RUNNING_IMAGE_GENERATION;
+        case Status.RESULT_READY:
+            return StatusMessage.RESULT_READY;
         case Status.FINISHED:
             return StatusMessage.FINISHED;
         case Status.FAILED:
@@ -72,6 +74,8 @@ const changeStatusIcon = (status: Status) => {
             return MessageIcon.RUNNING_MUSIC_STYLE;
         case Status.RUNNING_IMAGE_GENERATION:
             return MessageIcon.RUNNING_IMAGE_GENERATION;
+        case Status.RESULT_READY:
+            return MessageIcon.RESULT_READY;
         case Status.FINISHED:
             return MessageIcon.FINISHED;
         case Status.FAILED:
@@ -93,6 +97,8 @@ const changeMessageColor = (status: Status) => {
             return MessageColor.RUNNING_MUSIC_STYLE;
         case Status.RUNNING_IMAGE_GENERATION:
             return MessageColor.RUNNING_IMAGE_GENERATION;
+        case Status.RESULT_READY:
+            return MessageColor.RESULT_READY;
         case Status.FINISHED:
             return MessageColor.FINISHED;
         case Status.FAILED:
@@ -119,7 +125,7 @@ const waitForResult = async () => {
         store.message_icon = changeStatusIcon(store.status);
         store.message_color = changeMessageColor(store.status);
         store.progress = adaptProgress(store.status);
-        if (store.status == Status.FINISHED) {
+        if (store.status == Status.RESULT_READY) {
             setTimeout(getResult, TIMEOUT);
             return;
         } else if (store.status == Status.FAILED) {
@@ -251,10 +257,10 @@ const downloadAll = () => {
                             <LoadingComponent />
                         </v-card-text>
                         <v-card-text
-                                v-else-if="store.status == Status.FINISHED || store.status == Status.FAILED"
+                                v-else-if="store.status == Status.RESULT_READY || store.status == Status.FAILED"
                                 class="card card-middle pb-2">
                             <v-carousel
-                                    v-if="store.status == Status.FINISHED && store.result.images.length > 0"
+                                    v-if="store.status == Status.RESULT_READY && store.result.images.length > 0"
                                     hide-delimiters
                                     sm="12"
                                     class="pt-0 radius-8"
@@ -292,11 +298,11 @@ const downloadAll = () => {
                             <FileUpload/>
                         </v-card-text>
                         <v-card-actions class="pl-4 pr-4 pb-4 card">
-                            <v-row v-if="store.status == Status.FINISHED || store.status == Status.FAILED">
+                            <v-row v-if="store.status == Status.RESULT_READY || store.status == Status.FAILED">
                                 <v-col
                                         cols="9"
                                         class="pr-0"
-                                        v-if="store.status == Status.FINISHED"
+                                        v-if="store.status == Status.RESULT_READY"
                                 >
                                     <v-btn
                                             elevation="2"
@@ -331,7 +337,7 @@ const downloadAll = () => {
                                 </v-col>
                             </v-row>
                             <v-row
-                                    v-if="store.status != Status.FINISHED && store.status != Status.FAILED">
+                                    v-if="store.status != Status.RESULT_READY && store.status != Status.FAILED">
                                 <v-col>
                                     <v-btn
                                             elevation="2"

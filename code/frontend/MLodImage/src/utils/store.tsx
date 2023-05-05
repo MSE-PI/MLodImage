@@ -8,6 +8,7 @@ export const enum Status {
     RUNNING_SENTIMENT = "running_sentiment",
     RUNNING_MUSIC_STYLE = "running_music_style",
     RUNNING_IMAGE_GENERATION = "running_image_generation",
+    RESULT_READY = "result_ready",
     FINISHED = "finished",
     FAILED = "failed",
 }
@@ -20,6 +21,7 @@ export const enum StatusMessage {
     RUNNING_SENTIMENT = "Extracting sentiment and topic from text",
     RUNNING_MUSIC_STYLE = "Detecting music style",
     RUNNING_IMAGE_GENERATION = "Generating images",
+    RESULT_READY = "Finished",
     FINISHED = "Finished",
     FAILED = "Failed",
 }
@@ -32,6 +34,7 @@ export const enum MessageIcon {
     RUNNING_SENTIMENT = "mdi mdi-emoticon-happy-outline",
     RUNNING_MUSIC_STYLE = "mdi mdi-music-note-outline",
     RUNNING_IMAGE_GENERATION = "mdi mdi-image-outline",
+    RESULT_READY = "mdi mdi-check-circle-outline",
     FINISHED = "mdi mdi-check-circle-outline",
     FAILED = "mdi mdi-close-circle-outline",
 }
@@ -44,6 +47,7 @@ export const enum MessageColor {
     RUNNING_SENTIMENT = "orange",
     RUNNING_MUSIC_STYLE = "pink",
     RUNNING_IMAGE_GENERATION = "blue",
+    RESULT_READY = "green",
     FINISHED = "green",
     FAILED = "red",
 }

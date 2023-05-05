@@ -1,4 +1,5 @@
 from enum import Enum
+import os
 import requests
 import time
 import uuid
@@ -15,27 +16,24 @@ import io
 # import warnings
 # warnings.filterwarnings("ignore")
 
-api_summary = """
+api_description = """
 This service is the orchestrator of the MLodImage project. It is responsible for:
 - Receiving requests from the client with the audio file
 - Call whisper service to generate the lyrics
 - Call sentiment-analysis service to analyze the lyrics
 - Call music-style service to analyze the style of the music
 - Call the image-generation service to generate the cover art
-
 """
 
-api_description = """
-Generate art from lyrics and music style. Returns a JSON object with the following fields:
-- image1: the first generated image 
-- image2: the second generated image
-- image3: the third generated image
+api_summary = """
+Orchestrator API for the MLodImage project.
 """
 
 # Define the FastAPI application with information
 app = FastAPI(
     title="MLodImage Ochestrator API.",
     description=api_description,
+    summary=api_summary,
     version="0.0.1",
     swagger_ui_parameters={
         "tagsSorter": "alpha",
@@ -69,6 +67,7 @@ class PipelineStatus(str, Enum):
     RUNNING_IMAGE_GENERATION = "running_image_generation"
     FINISHED = "finished"
     FAILED = "failed"
+    RESULT_READY = "result_ready"
 
 class PipelineInformation(BaseModel):
     id: str
@@ -80,7 +79,7 @@ class Pipeline(BaseModel):
     audio_type: str = None
     result_path: str = None
 
-piplines: list[Pipeline] = []
+pipelines: list[Pipeline] = []
 audio_supported = ["audio/wav", "audio/mpeg", "audio/x-m4a"]
 
 SERVICE_URL_TEMPLATE = "https://{}-mlodimage.kube.isc.heia-fr.ch"
@@ -90,16 +89,33 @@ MUSIC_STYLE_URL = SERVICE_URL_TEMPLATE.format("genre-detection")
 ART_GENERATION_URL = SERVICE_URL_TEMPLATE.format("art-generation")
 SERVICE_ROUTE = "/process"
 
+
+def delete_pipeline(pipeline_id: str):
+    for pipeline in pipelines:
+        if pipeline.informations.id == pipeline_id:
+            # Delete audio file
+            if pipeline.audio_path:
+                os.remove(pipeline.audio_path)
+            # Delete result file
+            if pipeline.result_path:
+                os.remove(pipeline.result_path)
+            pipelines.remove(pipeline)
+            return
+    return None
+
 # Get first waiting pipeline
 def get_waiting_pipeline():
-    for pipeline in piplines:
+    for pipeline in pipelines:
+        if pipeline.informations.status == PipelineStatus.FINISHED:
+            delete_pipeline(pipeline.informations.id)
+            continue
         if pipeline.informations.status == PipelineStatus.WAITING:
             return pipeline
     return None
 
 # Get pipeline by id
 def get_pipeline_by_id(pipeline_id: str):
-    for pipeline in piplines:
+    for pipeline in pipelines:
         if pipeline.informations.id == pipeline_id:
             return pipeline
     return None
@@ -140,6 +156,7 @@ def run_pipeline():
         response = requests.post(MUSIC_STYLE_URL + SERVICE_ROUTE, files={"audio": (pipeline.audio_path, audio_file_bytes, audio_type)})
         if response.status_code != 200:
             pipeline.informations.status = PipelineStatus.FAILED
+            print(response.text)
             continue
         music_style = response.json()
 
@@ -159,7 +176,7 @@ def run_pipeline():
             print(response.text)
             continue
         
-        print("Creating zip file..")
+        print("Creating zip file with generated images")
         zip_file_content = response.content
 
         # Save the zip file to disk
@@ -174,10 +191,13 @@ def run_pipeline():
 
         pipeline.result_path = archive_path
 
-        pipeline.informations.status = PipelineStatus.FINISHED
+        pipeline.informations.status = PipelineStatus.RESULT_READY
 
 @app.post("/create", tags=['Pipeline'])
-async def create_pipline(audio: UploadFile = File(...)):
+async def create_pipeline(audio: UploadFile = File(...)):
+    '''
+    Create a new pipeline
+    '''
     # Generate a random id
     pipeline_id = str(uuid.uuid4())
 
@@ -201,11 +221,14 @@ async def create_pipline(audio: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Error while processing audio file")
     
     pipeline = Pipeline(informations=PipelineInformation(id=pipeline_id, status=PipelineStatus.CREATED), audio_path=audio_path, audio_type=audio.content_type)
-    piplines.append(pipeline)
+    pipelines.append(pipeline)
     return pipeline.informations
 
 @app.get("/run/{pipeline_id}", tags=['Pipeline'])
 async def submit_pipeline(pipeline_id: str):
+    '''
+    Submits the pipeline to the pipeline manager
+    '''
     pipeline = get_pipeline_by_id(pipeline_id)
     if pipeline is None:
         raise HTTPException(status_code=400, detail="Invalid pipeline id")
@@ -221,26 +244,57 @@ async def submit_pipeline(pipeline_id: str):
 
 @app.get("/status/{pipeline_id}", tags=['Pipeline'])
 async def get_pipeline_status(pipeline_id: str):
-    pipline = get_pipeline_by_id(pipeline_id)
-    if pipline is None:
+    '''
+    Returns the status of the pipeline
+    '''
+    pipeline = get_pipeline_by_id(pipeline_id)
+    if pipeline is None:
         raise HTTPException(status_code=400, detail="Invalid pipeline id")
-    return pipline.informations.status
+    return pipeline.informations.status
 
 @app.get("/result/{pipeline_id}", tags=['Pipeline'])
 async def get_pipeline_result(pipeline_id: str):
+    '''
+    Returns the result of the pipeline as a zip file
+    '''
     # Get pipeline
     pipeline = get_pipeline_by_id(pipeline_id)
     if pipeline is None:
         raise HTTPException(status_code=400, detail="Invalid pipeline id")
     # Check if pipeline is finished
-    if pipeline.informations.status != PipelineStatus.FINISHED:
+    if pipeline.informations.status != PipelineStatus.RESULT_READY:
         raise HTTPException(status_code=400, detail="Pipeline is not finished yet")
+    
+    pipeline.informations.status = PipelineStatus.FINISHED
     
     return FileResponse(pipeline.result_path, media_type="application/zip", filename=pipeline.result_path)
 
+@app.get("/pipelines", tags=['Pipeline'])
+async def get_pipelines():
+    '''
+    Returns a list of all pipelines
+    '''
+    return [pipeline.informations for pipeline in pipelines]
+
+@app.get("/reset", tags=['Pipeline'])
+async def reset_pipelines():
+    '''
+    Delete all pipelines and removes all files in the audios and results folder
+    '''
+    pipelines.clear()
+    # Remove all files in the audios folder
+    for file in os.listdir("./audios/"):
+        if file != ".gitkeep":
+            os.remove("./audios/"+file)
+            
+    # Remove all files in the results folder
+    for file in os.listdir("./results/"):
+        if file != ".gitkeep":
+            os.remove("./results/"+file)
+
 if __name__ == "__main__":
     # Create test pipeline
-    piplines.append(Pipeline(informations=PipelineInformation(id="test", status=PipelineStatus.CREATED), audio_path="./audios/music.wav"))
+    pipelines.append(Pipeline(informations=PipelineInformation(id="test", status=PipelineStatus.CREATED), audio_path="./audios/music.wav"))
     pipeline = get_pipeline_by_id("test")
 
     # Run pipeline
@@ -249,7 +303,7 @@ if __name__ == "__main__":
 
     # Wait for pipeline to finish
     current_status = None
-    while pipeline.informations.status != PipelineStatus.FINISHED:
+    while pipeline.informations.status != PipelineStatus.RESULT_READY:
         if pipeline.informations.status != current_status:
             print(pipeline.informations.status)
             current_status = pipeline.informations.status
