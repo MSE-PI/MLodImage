@@ -108,9 +108,12 @@ def get_waiting_pipeline():
     for pipeline in pipelines:
         if pipeline.informations.status == PipelineStatus.WAITING:
             return pipeline
+    return None
+
+def delete_finished_pipelines():
+    for pipeline in pipelines:
         if pipeline.informations.status == PipelineStatus.FINISHED:
             delete_pipeline(pipeline.informations.id)
-    return None
 
 # Get pipeline by id
 def get_pipeline_by_id(pipeline_id: str):
@@ -236,6 +239,8 @@ async def submit_pipeline(pipeline_id: str):
     '''
     Submits the pipeline to the pipeline manager
     '''
+    delete_finished_pipelines()
+
     pipeline = get_pipeline_by_id(pipeline_id)
     if pipeline is None:
         raise HTTPException(status_code=400, detail="Invalid pipeline id")
