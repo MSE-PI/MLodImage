@@ -12,7 +12,8 @@ export const post = async (url: string, data: File) => {
         }
         return false;
     } catch (error) {
-        return error;
+        console.log(error)
+        return false;
     }
 }
 
@@ -27,7 +28,8 @@ export const get = async (url: string) => {
         }
         return false;
     } catch (error) {
-        return {"status": "failed", "message": error};
+        console.log(error)
+        return false;
     }
 }
 
@@ -42,6 +44,7 @@ export const getResults = async (url: string) => {
         }
         return false;
     } catch (error) {
-        return {"status": "failed", "message": error};
+        console.log(error)
+        return false;
     }
 }

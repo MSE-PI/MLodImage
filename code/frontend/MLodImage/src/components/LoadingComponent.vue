@@ -148,7 +148,6 @@
                 </filter>
             </defs>
         </svg>
-        <h1>PROCESSING</h1>
     </div>
 </template>
 

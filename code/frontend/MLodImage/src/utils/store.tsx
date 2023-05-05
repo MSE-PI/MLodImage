@@ -23,6 +23,31 @@ export const enum StatusMessage {
     FINISHED = "Finished",
     FAILED = "Failed",
 }
+
+export const enum MessageIcon {
+    IDLE = "mdi mdi-clock-outline",
+    CREATED = "mdi mdi-check",
+    WAITING = "mdi mdi-clock-outline",
+    RUNNING_WHISPER = "mdi mdi-account-voice",
+    RUNNING_SENTIMENT = "mdi mdi-emoticon-happy-outline",
+    RUNNING_MUSIC_STYLE = "mdi mdi-music-note-outline",
+    RUNNING_IMAGE_GENERATION = "mdi mdi-image-outline",
+    FINISHED = "mdi mdi-check-circle-outline",
+    FAILED = "mdi mdi-close-circle-outline",
+}
+
+export const enum MessageColor {
+    IDLE = "grey",
+    CREATED = "green",
+    WAITING = "grey",
+    RUNNING_WHISPER = "Red",
+    RUNNING_SENTIMENT = "orange",
+    RUNNING_MUSIC_STYLE = "pink",
+    RUNNING_IMAGE_GENERATION = "blue",
+    FINISHED = "green",
+    FAILED = "red",
+}
+
 export const store = reactive({
     disabled: true,
     file: new File([], ''),
@@ -33,5 +58,7 @@ export const store = reactive({
     },
     status: Status.IDLE,
     status_message: StatusMessage.IDLE,
+    message_icon: MessageIcon.IDLE,
+    message_color: MessageColor.IDLE,
     progress: 0,
 });
