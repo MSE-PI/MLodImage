@@ -327,12 +327,12 @@ const downloadAll = () => {
                                             variant="elevated"
                                             size="large"
                                             class="radius-8"
-                                            v-bind="store"
                                             block
                                             @click="resetStore"
                                             icon="mdi mdi-refresh"
                                             title="Reset"
                                     >
+                                        {{ store.status == Status.FAILED ? 'Start Over' : ''}}
                                     </v-btn>
                                 </v-col>
                             </v-row>

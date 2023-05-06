@@ -43,7 +43,7 @@ export const enum MessageColor {
     IDLE = "grey",
     CREATED = "green",
     WAITING = "grey",
-    RUNNING_WHISPER = "Red",
+    RUNNING_WHISPER = "amber",
     RUNNING_SENTIMENT = "orange",
     RUNNING_MUSIC_STYLE = "pink",
     RUNNING_IMAGE_GENERATION = "blue",
