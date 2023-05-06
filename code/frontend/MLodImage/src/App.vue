@@ -254,7 +254,7 @@ const downloadAll = () => {
                             >
                                 {{ store.status_message }}
                             </v-chip>
-                            <LoadingComponent />
+                            <LoadingComponent/>
                         </v-card-text>
                         <v-card-text
                                 v-else-if="store.status == Status.RESULT_READY || store.status == Status.FAILED"
@@ -322,6 +322,21 @@ const downloadAll = () => {
                                 </v-col>
                                 <v-col>
                                     <v-btn
+                                            v-if="store.status == Status.FAILED"
+                                            elevation="2"
+                                            color="orange"
+                                            variant="elevated"
+                                            size="large"
+                                            class="radius-8"
+                                            block
+                                            @click="resetStore"
+                                            prepend-icon="mdi mdi-refresh"
+                                            title="Reset"
+                                    >
+                                        Start Over
+                                    </v-btn>
+                                    <v-btn
+                                            v-else
                                             elevation="2"
                                             color="orange"
                                             variant="elevated"
@@ -331,9 +346,7 @@ const downloadAll = () => {
                                             @click="resetStore"
                                             icon="mdi mdi-refresh"
                                             title="Reset"
-                                    >
-                                        {{ store.status == Status.FAILED ? 'Start Over' : ''}}
-                                    </v-btn>
+                                    />
                                 </v-col>
                             </v-row>
                             <v-row
