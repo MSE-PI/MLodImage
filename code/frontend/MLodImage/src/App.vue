@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Status, StatusMessage, MessageIcon, MessageColor, store } from '@/utils/store';
 import { get, getResults, post } from './utils/api';
-import LoadingComponent from '@/components/LoadingComponent.vue';
 import FileUpload from '@/components/FileUpload.vue';
 import JSZip from 'jszip';
 
@@ -219,13 +218,14 @@ const downloadAll = () => {
                 <v-col cols="12" sm="8" md="6" lg="4">
                     <v-card
                             width="100%"
-                            min-height="400px"
                             class="mx-auto gradient radius-8 card-container"
                             elevation="10"
                     >
                         <v-card-title class="headline card">
-                            MLodImage
-                            <v-icon icon="mdi mdi-music-note-eighth"></v-icon>
+                            <img
+                                    class="mt-3"
+                                    src="@/assets/logo.svg"
+                                    alt="logo"/>
                         </v-card-title>
                         <v-card-text
                                 v-if="
@@ -237,24 +237,39 @@ const downloadAll = () => {
                                 store.status == Status.RUNNING_IMAGE_GENERATION"
                                 class="card card-middle"
                         >
-                            <v-progress-linear
-                                    class="radius-8"
-                                    v-model="store.progress"
-                                    :buffer-value="store.progress"
-                                    color="orange"
-                                    height="10"
-                            />
-                            <v-chip
-                                    :color="store.message_color"
-                                    text-color="white"
-                                    class="card mt-2"
-                                    size="large"
-                                    label
-                                    :prepend-icon="store.message_icon"
-                            >
-                                {{ store.status_message }}
-                            </v-chip>
-                            <LoadingComponent/>
+                            <v-row>
+                                <v-col>
+                                    <v-progress-linear
+                                            class="radius-8"
+                                            v-model="store.progress"
+                                            :buffer-value="store.progress"
+                                            color="orange"
+                                            height="10"
+                                    />
+                                    <v-chip
+                                            :color="store.message_color"
+                                            text-color="white"
+                                            class="card mt-2"
+                                            size="large"
+                                            label
+                                            :prepend-icon="store.message_icon"
+                                    >
+                                        {{ store.status_message }}
+                                    </v-chip>
+                                </v-col>
+                            </v-row>
+                            <v-row class="text-center">
+                                <v-col>
+                                    <v-progress-circular
+                                            class="radius-8"
+                                            :size="70"
+                                            :width="7"
+                                            :value="store.progress"
+                                            :color="store.message_color"
+                                            indeterminate
+                                    />
+                                </v-col>
+                            </v-row>
                         </v-card-text>
                         <v-card-text
                                 v-else-if="store.status == Status.RESULT_READY || store.status == Status.FAILED"

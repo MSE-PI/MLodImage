@@ -57,7 +57,7 @@ function handleClickDeleteFile() {
 .dropzone,
 .files {
   width: 100%;
-  height: 100%;
+  height: 200px;
   margin: 0 auto;
   padding: 10px;
   border-radius: 8px;
@@ -114,6 +114,6 @@ function handleClickDeleteFile() {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: calc(100vw - 140px);
+    max-width: calc(100vw - 170px);
 }
 </style>
