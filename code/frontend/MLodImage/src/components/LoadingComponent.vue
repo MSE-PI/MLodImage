@@ -3,7 +3,7 @@
 </script>
 
 <template>
-    <div id="svgs">
+    <div id="svgs" class="justify-center">
         <svg id="solNotes" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 164 156" fill="none">
             <rect x="12" y="2" width="150" height="150" fill-opacity="0"/>
             <g filter="url(#filter4_d)" class="nScale1">
@@ -158,27 +158,7 @@
 
 #svgs {
     position: fixed;
-    top: 50%;
-    left: 50%;
-    width: 150px;
     height: 150px;
-    margin-top: -75px;
-    margin-left: -75px;
-}
-
-h1 {
-    width: 170px;
-    height: 36px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: normal;
-    font-size: 24px;
-    line-height: 36px;
-    text-align: center;
-    top: 158px;
-    left: -10px;
-    position: absolute;
-    margin: 0;
-    color: #FFFFFF;
 }
 
 #solNotes {
