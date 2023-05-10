@@ -38,8 +38,6 @@ from minio import Minio
 import traceback
 from pydub import AudioSegment
 
-print(torchaudio.utils.sox_utils.list_read_formats())
-
 # audio configuration TODO: move to config file
 # support audio : wav, mpeg, m4a, ogg
 AUDIO_SUPPORTED = ["audio/wav", "audio/mpeg", "audio/x-m4a", "audio/ogg"]
