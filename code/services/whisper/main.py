@@ -42,7 +42,7 @@ from whisper import Whisper
 settings = get_settings()
 
 model: Whisper
-audio_supported = ["audio/wav", "audio/mpeg", "audio/x-m4a"]
+audio_supported = ["audio/wav", "audio/mpeg", "audio/x-m4a", "audio/ogg"]
 current_path: str = os.getcwd()
 
 
@@ -83,7 +83,6 @@ class MyService(Service):
 
         # TODO bytes to audio file
 
-
         json_result = {
             "text": "test"
         }
@@ -94,7 +93,6 @@ class MyService(Service):
                 type=FieldDescriptionType.APPLICATION_JSON
             )
         }
-
 
 
 api_summary = """
@@ -132,6 +130,7 @@ app.add_middleware(
 app.include_router(service_router, tags=['Service'])
 app.include_router(tasks_router, tags=['Tasks'])
 
+
 # Redirect to docs
 @app.get("/", include_in_schema=False)
 async def root():
@@ -140,6 +139,7 @@ async def root():
 
 service_service: ServiceService | None = None
 my_service: MyService | None = None
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -178,7 +178,7 @@ async def process(audio: UploadFile = File(...)):
     tmp = audio.filename.split('.')
     file_type: str = tmp[len(tmp) - 1]
     try:
-        with NamedTemporaryFile(suffix="."+file_type, dir="./audio/", delete=True) as f:
+        with NamedTemporaryFile(suffix="." + file_type, dir="./audio/", delete=True) as f:
             f.write(await audio.read())
             # Do the speech recognition
             result = my_service.model.transcribe(f.name)
