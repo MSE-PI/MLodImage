@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: model-trainer
+spec:
+  template:
+    spec:
+      containers:
+        - image: ghcr.io/mse-pi/test:latest
+          name: model-trainer
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: github-cred
+  backoffLimit: 4
+
+
