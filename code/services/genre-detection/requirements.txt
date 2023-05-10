@@ -1,7 +1,8 @@
 common-code @ git+https://github.com/csia-pme/csia-pme.git@3b5c93944eb16b3a8dddc368db423cbd4148120a#subdirectory=common-code
-minio==7.1.14
-numpy==1.23.5
-pydantic==1.10.7
-torch==2.0.0
-torchaudio==2.0.0
+minio~=7.1.14
+numpy~=1.23.5
+pydantic~=1.10.7
+torch~=2.0.0
+torchaudio~=2.0.0
 python-multipart~=0.0.6
+pydub~=0.25.1
