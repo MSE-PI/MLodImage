@@ -26,6 +26,7 @@ from common_code.service.models import Service, FieldDescription
 from common_code.service.enums import ServiceStatus, FieldDescriptionType
 
 # service specific imports
+import uvicorn
 from tempfile import NamedTemporaryFile
 from fastapi import HTTPException, UploadFile, File
 from AudioCNN import AudioCNN
@@ -34,9 +35,12 @@ import torch
 import os
 import numpy as np
 from minio import Minio
+import traceback
+from pydub import AudioSegment
 
 # audio configuration TODO: move to config file
-AUDIO_SUPPORTED = ["audio/wav", "audio/mpeg", "audio/x-m4a"]
+# support audio : wav, mpeg, m4a, ogg
+AUDIO_SUPPORTED = ["audio/wav", "audio/mpeg", "audio/x-m4a", "audio/ogg"]
 AUDIO_DURATION = 3000  #equals 3 seconds
 SAMPLE_RATE = 44100
 N_CHANNELS = 1
@@ -71,6 +75,7 @@ class AudioUtil():
         :type audio_file: Union[str, pathlib.Path, FileLike]
         :return: the signal and the sample rate
         """
+        # convert the file to ensure is is compatible with torchaudio
         signal, sample_rate = torchaudio.load(audio_file)
         return (signal, sample_rate)
     
@@ -204,6 +209,7 @@ class MyService(Service):
         # TODO : download the model from Minio
         self.model = AudioCNN()
         self.model.load_state_dict(torch.load('cnn_model.h5', map_location=self.device))
+        self.model.to(self.device)
         self.model.eval()
         print("Model loaded successfully, running on device: " + str(self.device))
 
@@ -290,26 +296,25 @@ async def handle_process(audio: UploadFile = File(...)):
     """
     Route to perform the musical genre detection on an audio file.
     """
-
     # Check if audio file is given
     if audio is None:
         raise HTTPException(status_code=400, detail="No audio file given")
     # Check if audio file is valid
     if audio.content_type not in AUDIO_SUPPORTED:
         raise HTTPException(status_code=400, detail="Invalid audio file given")
-    # Save the audio file to the audio folder
-    tmp = audio.filename.split('.')
-    file_type: str = tmp[-1]
-    print(file_type)
     try:
-        with NamedTemporaryFile(suffix="."+file_type, dir="./audio/", delete=False) as f:
-            f.write(await audio.read())
+        with NamedTemporaryFile(suffix=".wav", dir="./audio/", delete=False) as f:
+            # convert the audio file to wav
+            AudioSegment.from_file(audio.file).export(f.name, format="wav")
             # Do the speech recognition
             result = MyService().process(f.name)
+    except Exception as e:
+        # print stack trace
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Error while processing audio file: " + str(e))
+    finally:
         # Delete the temporary file
         os.remove(f.name)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Error while processing audio file: " + str(e))
     
     return result
 
@@ -350,3 +355,6 @@ async def startup_event():
 
     # Announce the service to its engine
     asyncio.ensure_future(announce())
+
+if __name__ == '__main__':
+    uvicorn.run(app, host="0.0.0.0", port=8000)
