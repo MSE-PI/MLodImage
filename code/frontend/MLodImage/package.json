@@ -12,11 +12,15 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@mdi/font": "^7.2.96",
+    "jszip": "^3.10.1",
     "vue": "^3.2.47",
     "vue3-dropzone": "^2.0.1",
-    "vuetify": "^3.1.15"
+    "vuetify": "^3.1.15",
+    "vuex": "^4.1.0"
   },
   "devDependencies": {
+    "@fortawesome/fontawesome-free": "^6.4.0",
     "@rushstack/eslint-patch": "^1.2.0",
     "@types/node": "^18.14.2",
     "@vitejs/plugin-vue": "^4.0.0",

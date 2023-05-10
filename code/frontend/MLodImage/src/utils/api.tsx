@@ -7,19 +7,44 @@ export const post = async (url: string, data: File) => {
             mode: 'cors',
             body: body
         });
-        console.log(response);
         if (response.status === 200) {
             return await response.json();
         }
         return false;
     } catch (error) {
-        return error;
+        console.log(error)
+        return false;
     }
 }
 
 export const get = async (url: string) => {
-    return await fetch(url, {
-        method: 'GET',
-        mode: 'cors',
-    })
+    try {
+        const result = await fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+        })
+        if (result.status === 200) {
+            return await result.json();
+        }
+        return false;
+    } catch (error) {
+        console.log(error)
+        return false;
+    }
+}
+
+export const getResults = async (url: string) => {
+    try {
+        const result = await fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+        })
+        if (result.status === 200) {
+            return await result.blob();
+        }
+        return false;
+    } catch (error) {
+        console.log(error)
+        return false;
+    }
 }
