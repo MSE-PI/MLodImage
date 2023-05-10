@@ -13,10 +13,8 @@ from common_code.storage.service import StorageService
 from common_code.tasks.controller import router as tasks_router
 from common_code.tasks.service import TasksService
 from common_code.tasks.models import TaskData
-from common_code.service.models import Service
-from common_code.service.enums import ServiceStatus
-from common_code.common.enums import FieldDescriptionType, ExecutionUnitTagName, ExecutionUnitTagAcronym
-from common_code.common.models import FieldDescription, ExecutionUnitTag
+from common_code.service.models import Service, FieldDescription
+from common_code.service.enums import ServiceStatus, FieldDescriptionType
 
 # Model specific imports
 import re
