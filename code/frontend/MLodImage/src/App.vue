@@ -1,12 +1,21 @@
 <script setup lang="ts">
 import { Status, StatusMessage, MessageIcon, MessageColor, store } from '@/utils/store';
-import { get, getResults, post } from './utils/api';
+import { get, getResults, postFile, postURL } from './utils/api';
 import FileUpload from '@/components/FileUpload.vue';
 import JSZip from 'jszip';
 
 const TIMEOUT = 100;
 
+const setStatus = (status: Status) => {
+    store.status = status;
+    store.progress = adaptProgress(status);
+    store.status_message = changeStatusMessage(status);
+    store.message_icon = changeStatusIcon(status);
+    store.message_color = changeMessageColor(status);
+};
+
 const resetStore = () => {
+    store.url = '';
     store.file = new File([], '');
     store.disabled = true;
     store.execution_id = '';
@@ -21,14 +30,16 @@ const adaptProgress = (status: Status) => {
     switch (status) {
         case Status.WAITING:
             return 0;
+        case Status.RUNNING_YOUTUBE_DOWNLOADER:
+            return 17;
         case Status.RUNNING_WHISPER:
-            return 20;
+            return 34;
         case Status.RUNNING_SENTIMENT:
-            return 40;
+            return 51;
         case Status.RUNNING_MUSIC_STYLE:
-            return 60;
+            return 68;
         case Status.RUNNING_IMAGE_GENERATION:
-            return 80;
+            return 85;
         case Status.RESULT_READY:
             return 100;
         case Status.FAILED:
@@ -42,6 +53,8 @@ const changeStatusMessage = (status: Status) => {
     switch (status) {
         case Status.WAITING:
             return StatusMessage.WAITING;
+        case Status.RUNNING_YOUTUBE_DOWNLOADER:
+            return StatusMessage.RUNNING_YOUTUBE_DOWNLOADER;
         case Status.RUNNING_WHISPER:
             return StatusMessage.RUNNING_WHISPER;
         case Status.RUNNING_SENTIMENT:
@@ -65,6 +78,8 @@ const changeStatusIcon = (status: Status) => {
     switch (status) {
         case Status.WAITING:
             return MessageIcon.WAITING;
+        case Status.RUNNING_YOUTUBE_DOWNLOADER:
+            return MessageIcon.RUNNING_YOUTUBE_DOWNLOADER;
         case Status.RUNNING_WHISPER:
             return MessageIcon.RUNNING_WHISPER;
         case Status.RUNNING_SENTIMENT:
@@ -88,6 +103,8 @@ const changeMessageColor = (status: Status) => {
     switch (status) {
         case Status.WAITING:
             return MessageColor.WAITING;
+        case Status.RUNNING_YOUTUBE_DOWNLOADER:
+            return MessageColor.RUNNING_YOUTUBE_DOWNLOADER;
         case Status.RUNNING_WHISPER:
             return MessageColor.RUNNING_WHISPER;
         case Status.RUNNING_SENTIMENT:
@@ -111,21 +128,13 @@ const waitForResult = async () => {
     const result = await get(`https://orchestrator-mlodimage.kube.isc.heia-fr.ch/status/${store.execution_id}`);
     if (!result) {
         setTimeout(waitForResult, TIMEOUT);
-        store.status = Status.FAILED;
-        store.status_message = changeStatusMessage(Status.FAILED);
-        store.message_icon = changeStatusIcon(Status.FAILED);
-        store.message_color = changeMessageColor(Status.FAILED);
-        store.progress = adaptProgress(Status.FAILED);
+        setStatus(Status.FAILED);
         store.disabled = false;
         return;
     } else {
-        store.status = result;
-        store.status_message = changeStatusMessage(result);
-        store.message_icon = changeStatusIcon(store.status);
-        store.message_color = changeMessageColor(store.status);
-        store.progress = adaptProgress(store.status);
+        setStatus(result);
         if (store.status == Status.RESULT_READY) {
-            setTimeout(getResult, TIMEOUT);
+            getResult();
             return;
         } else if (store.status == Status.FAILED) {
             return;
@@ -139,18 +148,11 @@ const waitForResult = async () => {
 const launchPipeline = async () => {
     const result = await get(`https://orchestrator-mlodimage.kube.isc.heia-fr.ch/run/${store.execution_id}`);
     if (!result) {
-        store.status = Status.FAILED;
-        store.status_message = changeStatusMessage(Status.FAILED);
-        store.message_icon = changeStatusIcon(Status.FAILED);
-        store.message_color = changeMessageColor(Status.FAILED);
-        store.progress = adaptProgress(Status.FAILED);
+        setStatus(Status.FAILED);
         store.disabled = false;
         return;
     } else {
-        store.status = result.status;
-        store.status_message = changeStatusMessage(result.status);
-        store.message_icon = changeStatusIcon(store.status);
-        store.message_color = changeMessageColor(store.status);
+        setStatus(result.status);
         if (result.status == Status.WAITING) {
             setTimeout(waitForResult, TIMEOUT);
             return;
@@ -160,13 +162,15 @@ const launchPipeline = async () => {
 
 const handleClick = async () => {
     store.disabled = true;
-    const result = await post('https://orchestrator-mlodimage.kube.isc.heia-fr.ch/create', store.file!);
+    let result;
+    if (store.file.name.length > 0) {
+        result = await postFile('https://orchestrator-mlodimage.kube.isc.heia-fr.ch/create', store.file!);
+    } else {
+        result = await postURL('https://orchestrator-mlodimage.kube.isc.heia-fr.ch/create', store.url);
+    }
     if (result) {
         store.execution_id = result.id;
-        store.status = result.status;
-        store.status_message = changeStatusMessage(result.status);
-        store.message_icon = changeStatusIcon(store.status);
-        store.message_color = changeMessageColor(store.status);
+        setStatus(result.status);
         launchPipeline();
     } else {
         store.disabled = false;
@@ -231,6 +235,7 @@ const downloadAll = () => {
                                 v-if="
                                 store.status == Status.CREATED ||
                                 store.status == Status.WAITING ||
+                                store.status == Status.RUNNING_YOUTUBE_DOWNLOADER ||
                                 store.status == Status.RUNNING_WHISPER ||
                                 store.status == Status.RUNNING_MUSIC_STYLE ||
                                 store.status == Status.RUNNING_SENTIMENT ||
@@ -310,7 +315,32 @@ const downloadAll = () => {
                             </v-chip>
                         </v-card-text>
                         <v-card-text v-else class="card card-middle pb-2">
-                            <FileUpload/>
+                            <v-container class="pl-0 pr-0 pb-0 pt-0">
+                                <v-row class="text-center">
+                                    <v-col class="pb-0">
+                                        <v-text-field
+                                                label="YouTube URL"
+                                                icon="mdi-youtube"
+                                                variant="solo"
+                                                class="radius-8"
+                                                prepend-inner-icon="mdi mdi-youtube"
+                                                @input="store.disabled = store.url.length == 0"
+                                                v-model="store.url"
+                                                :disabled="store.file.name.length > 0"
+                                        ></v-text-field>
+                                    </v-col>
+                                </v-row>
+                                <v-row class="text-center mt-1">
+                                    <v-col class="text-amber text-h6">
+                                        OR
+                                    </v-col>
+                                </v-row>
+                                <v-row class="text-center">
+                                    <v-col>
+                                        <FileUpload/>
+                                    </v-col>
+                                </v-row>
+                            </v-container>
                         </v-card-text>
                         <v-card-actions class="pl-4 pr-4 pb-4 card">
                             <v-row v-if="store.status == Status.RESULT_READY || store.status == Status.FAILED">
@@ -376,7 +406,8 @@ const downloadAll = () => {
                                             block
                                             v-bind="store"
                                             @click="handleClick"
-                                            :prepend-icon="store.status == Status.IDLE ? 'mdi mdi-play' : 'mdi mdi-clock-outline'"
+                                            :prepend-icon="store.status == Status.IDLE ?
+                                            'mdi mdi-play-box-outline' : 'mdi mdi-clock-outline'"
                                     >
                                         {{ store.status == Status.IDLE ? 'Launch' : ' Running...' }}
                                     </v-btn>
