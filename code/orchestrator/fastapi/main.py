@@ -1,16 +1,18 @@
 from enum import Enum
 import os
+from typing import Optional
 import requests
 import time
 import uuid
 import threading
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, StreamingResponse, FileResponse
+from fastapi.responses import RedirectResponse, FileResponse
 from pydantic import BaseModel
 from tempfile import NamedTemporaryFile
 import zipfile
 import io
+import asyncio
 
 # Disable warnings
 # import warnings
@@ -18,7 +20,8 @@ import io
 
 api_description = """
 This service is the orchestrator of the MLodImage project. It is responsible for:
-- Receiving requests from the client with the audio file
+- Receiving requests from the client with the audio file or a YouTube URL
+- Call youtube-downloader service to download the audio file
 - Call whisper service to generate the lyrics
 - Call sentiment-analysis service to analyze the lyrics
 - Call music-style service to analyze the style of the music
@@ -61,6 +64,7 @@ async def root():
 class PipelineStatus(str, Enum):
     CREATED = "created"
     WAITING = "waiting"
+    RUNNING_YOUTUBE_DOWNLOADER = "running_youtube_downloader"
     RUNNING_WHISPER = "running_whisper"
     RUNNING_SENTIMENT = "running_sentiment"
     RUNNING_MUSIC_STYLE = "running_music_style"
@@ -78,16 +82,28 @@ class Pipeline(BaseModel):
     audio_path: str = None
     audio_type: str = None
     result_path: str = None
+    url: str = None
 
 pipelines: list[Pipeline] = []
 audio_supported = ["audio/wav", "audio/mpeg", "audio/x-m4a"]
 
 SERVICE_URL_TEMPLATE = "https://{}-mlodimage.kube.isc.heia-fr.ch"
+YOUTUBE_DOWNLOADER_URL = SERVICE_URL_TEMPLATE.format("youtube-downloader")
 WHISPER_URL = SERVICE_URL_TEMPLATE.format("whisper")
 SENTIMENT_ANALYSIS_URL = SERVICE_URL_TEMPLATE.format("sentiment-analysis")
 MUSIC_STYLE_URL = SERVICE_URL_TEMPLATE.format("genre-detection")
 ART_GENERATION_URL = SERVICE_URL_TEMPLATE.format("art-generation")
 SERVICE_ROUTE = "/process"
+
+async def save_audio(audio: io.BytesIO, file_type: str):
+    # Save the audio file to the audio folder
+    try:
+        with NamedTemporaryFile(suffix="."+file_type, dir="./audios/", delete=False) as f:
+            f.write(audio.read())
+            return f.name
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Error while processing audio file")
 
 
 def delete_pipeline(pipeline_id: str):
@@ -122,10 +138,30 @@ def get_pipeline_by_id(pipeline_id: str):
             return pipeline
     return None
 
+def start_pipeline_thread():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(run_pipeline())
+
 # Execute all the waiting pipelines
-def run_pipeline():
+async def run_pipeline():
     while get_waiting_pipeline() is not None:
         pipeline = get_waiting_pipeline()
+
+        if pipeline.audio_path is None:
+            # Call youtube-downloader service
+            pipeline.informations.status = PipelineStatus.RUNNING_YOUTUBE_DOWNLOADER
+            print("Calling youtube-downloader service", YOUTUBE_DOWNLOADER_URL + SERVICE_ROUTE)
+            response = requests.post(YOUTUBE_DOWNLOADER_URL + SERVICE_ROUTE, params={"url": pipeline.url})
+            if response.status_code != 200:
+                print(response.request.url)
+                print(response.text)
+                pipeline.informations.status = PipelineStatus.FAILED
+                continue
+            # Transform response.content to a BinaryIO
+            audio = io.BytesIO(response.content)
+            pipeline.audio_path = await save_audio(audio, "mp3")
+            print("Audio saved to", pipeline.audio_path)    
 
         # Call whisper service
         pipeline.informations.status = PipelineStatus.RUNNING_WHISPER
@@ -190,9 +226,7 @@ def run_pipeline():
             for file in zf.namelist():
                 f.writestr(file, zf.read(file))
 
-
         pipeline.result_path = archive_path
-
         pipeline.informations.status = PipelineStatus.RESULT_READY
 
 @app.get("/reload", tags=['Pipeline'])
@@ -204,33 +238,32 @@ async def reload():
     return {"message": "Reloaded"}
 
 @app.post("/create", tags=['Pipeline'])
-async def create_pipeline(audio: UploadFile = File(...)):
+async def create_pipeline(audio: Optional[UploadFile] = File(None), url: Optional[str] = Form(None)):
     '''
     Create a new pipeline
     '''
-    # Generate a random id
-    pipeline_id = str(uuid.uuid4())
 
-    # Check if audio file is given
-    if audio is None:
-        raise HTTPException(status_code=400, detail="No audio file given")
-    # Check if audio file is valid
-    if audio.content_type not in audio_supported:
-        raise HTTPException(status_code=400, detail="Invalid audio file given")
+    # Generate a random id and create a new pipeline
+    pipeline = Pipeline(informations=PipelineInformation(status=PipelineStatus.CREATED, id=str(uuid.uuid4())))
     
-    # Save the audio file to the audio folder
-    tmp = audio.filename.split('.')
-    file_type: str = tmp[len(tmp) - 1]
-    audio_path = None
-    try:
-        with NamedTemporaryFile(suffix="."+file_type, dir="./audios/", delete=False) as f:
-            f.write(await audio.read())
-            audio_path = f.name
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=500, detail="Error while processing audio file")
+    # Check if audio file or url is given
+    if audio is None and url is None:
+        raise HTTPException(status_code=400, detail="No audio file or url given")
+
+    # If url is given, download the file to a temporary directory
+    if url is not None:
+        pipeline.url = url
+    else:
+        # Check if audio file is valid
+        if audio.content_type not in audio_supported:
+            raise HTTPException(status_code=400, detail="Invalid audio file given")
+
+        # Save the audio file to the audio folder
+        pipeline.audio_type = audio.content_type
+        tmp = audio.filename.split('.')
+        file_type = tmp[len(tmp) - 1]
+        pipeline.audio_path = await save_audio(audio.file, file_type)
     
-    pipeline = Pipeline(informations=PipelineInformation(id=pipeline_id, status=PipelineStatus.CREATED), audio_path=audio_path, audio_type=audio.content_type)
     pipelines.append(pipeline)
     return pipeline.informations
 
@@ -249,8 +282,7 @@ async def submit_pipeline(pipeline_id: str):
     
     pipeline.informations.status = PipelineStatus.WAITING
     
-    # Execute pipeline in a thread
-    threading.Thread(target=run_pipeline).start()
+    threading.Thread(target=start_pipeline_thread).start()
 
     return PipelineInformation(id=pipeline_id, status=PipelineStatus.WAITING)
 

@@ -65,8 +65,9 @@ class MyService(Service):
             data_in_fields=[
                 FieldDescription(name="url", type=[FieldDescriptionType.TEXT_PLAIN]),
             ],
+            # !!! temporary to text because audio is not supported yet
             data_out_fields=[
-                FieldDescription(name="result", type=[FieldDescriptionType.AUDIO_MP3]),
+                FieldDescription(name="result", type=[FieldDescriptionType.TEXT_PLAIN]),
             ]
         )
 
@@ -90,7 +91,7 @@ class MyService(Service):
         return {
             "result": TaskData(
                 data=file_bytes,
-                type=FieldDescriptionType.AUDIO_MP3
+                type=FieldDescriptionType.TEXT_PLAIN
             )
         }
 
@@ -188,7 +189,7 @@ async def startup_event():
                                        f"{settings.engine_announce_retries} retries")
 
     # Announce the service to its engine
-    #asyncio.ensure_future(announce())
+    asyncio.ensure_future(announce())
 
 
 @app.on_event("shutdown")
