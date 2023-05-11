@@ -9,8 +9,6 @@ BRANCH_NAME: str = "train-model"
 
 def main():
     # clone git repo and create a new branch
-    os.system(f"git clone {GIT_REPO} repo")
-    os.system("cd repo")
     os.system(f"git checkout -b {BRANCH_NAME}")
     # dvc pull, train model, test, ...
     # TODO
@@ -19,8 +17,7 @@ def main():
     # commit and push changes
     now = datetime.now()
     date = now.strftime("%m/%d/%Y, %H:%M:%S")
-    os.system(f"git add . && git commit -m \"{date}: model train\"")
-    os.system(f"git push –set-upstream origin {BRANCH_NAME}")
+    os.system(f"git add . && git commit -m \"{date}: model train\" && git push –set-upstream origin {BRANCH_NAME}")
 
 # entry point
 if __name__ == '__main__':
