@@ -1,7 +1,5 @@
 FROM ubuntu:22.04
 
-ENV GIT_REPO git@github.com:MSE-PI/MLodImage.git
-
 ENV PYTHONUNBUFFERED=1
 
 # update and install ssh client
@@ -12,12 +10,19 @@ RUN mkdir -p /root/.ssh && \
     chmod 0700 /root/.ssh && \
     ssh-keyscan github.com > /root/.ssh/known_hosts
 
-ADD ./id_rsa /root/.ssh/id_rsa
+# https://gist.github.com/perja12/a3f41046e618f031a65b02e6c17e75d8
+# ==> convert key to correct format !!!
+ENV SSH_PRIVATE "-"
 
-# Add the keys and set permissions
-RUN chmod 600 /root/.ssh/id_rsa
+COPY ./add_key.sh .
+RUN chmod +x add_key.sh
 
-# launch the script
-CMD ["cat", "/root/.ssh/id_rsa"]
-#CMD ["git", "clone", "-b", "train-model", "git@github.com:MSE-PI/MLodImage.git" , "app"]
-#CMD ["python3", "/app/code/services/model-trainer/trainer.py"]
+RUN touch /root/.ssh/id_rsa
+RUN chmod 600 root/.ssh/id_rsa
+
+# add SSH key using shell script
+CMD ["sh", "add_key.sh"]
+
+# clone the repo and launch the trainer script
+CMD ["git", "clone", "-b", "develop", "git@github.com:MSE-PI/MLodImage.git" , "app"]
+CMD ["python3", "/app/code/services/model-trainer/trainer.py"]

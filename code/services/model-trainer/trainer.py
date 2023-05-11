@@ -8,7 +8,7 @@ GIT_REPO:str = "https://github.com/MSE-PI/MLodImage.git"
 BRANCH_NAME: str = "train-model"
 
 def main():
-    # clone git repo and create a new branch
+    # create a new branch
     os.system(f"git checkout -b {BRANCH_NAME}")
     # dvc pull, train model, test, ...
     # TODO
