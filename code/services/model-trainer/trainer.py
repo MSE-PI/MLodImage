@@ -20,7 +20,7 @@ def main():
     now = datetime.now()
     date = now.strftime("%m/%d/%Y, %H:%M:%S")
     os.system(f"git add . && git commit -m \"{date}: model train\"")
-    os.system("git push")
+    os.system(f"git push –set-upstream origin {BRANCH_NAME}")
 
 # entry point
 if __name__ == '__main__':
