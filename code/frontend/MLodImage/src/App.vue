@@ -3,8 +3,35 @@ import { Status, StatusMessage, MessageIcon, MessageColor, store } from '@/utils
 import { get, getResults, postFile, postURL } from './utils/api';
 import FileUpload from '@/components/FileUpload.vue';
 import JSZip from 'jszip';
+import { WebSocket } from 'vite';
 
 const TIMEOUT = 100;
+let ws: WebSocket;
+
+const initWebSocket = () => {
+    ws = new WebSocket(`wss://orchestrator-mlodimage.kube.isc.heia-fr.ch/ws/${store.execution_id}`);
+
+    ws.on("open", () => {
+        console.log("Connected to orchestrator");
+    });
+    ws.on("message", (data: any) => {
+        const message = JSON.parse(data);
+        setStatus(message.status);
+        if (message.status == Status.RESULT_READY) {
+            getResult();
+        } else if (message.status == Status.FAILED) {
+            store.disabled = false;
+        } else {
+            console.log(message);
+        }
+    });
+    ws.on("close", () => {
+        console.log('Connection closed');
+    });
+    ws.on("error", (err: any) => {
+        console.log(err);
+    });
+}
 
 const setStatus = (status: Status) => {
     store.status = status;
@@ -19,11 +46,7 @@ const resetStore = () => {
     store.file = new File([], '');
     store.disabled = true;
     store.execution_id = '';
-    store.status = Status.IDLE;
-    store.status_message = StatusMessage.IDLE;
-    store.message_icon = MessageIcon.IDLE;
-    store.message_color = MessageColor.IDLE;
-    store.progress = 0;
+    setStatus(Status.IDLE);
 };
 
 const adaptProgress = (status: Status) => {
@@ -171,7 +194,8 @@ const handleClick = async () => {
     if (result) {
         store.execution_id = result.id;
         setStatus(result.status);
-        launchPipeline();
+        // launchPipeline();
+        initWebSocket();
     } else {
         store.disabled = false;
     }
