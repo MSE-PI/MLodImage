@@ -240,7 +240,6 @@ class Data(BaseModel):
 
 @app.post("/process", tags=['Process'])
 def handle_process(data: Data):
-    print(data.text)
     result = MyService().process({"text": TaskData(data=data.text, type=FieldDescriptionType.TEXT_PLAIN)})
 
     data = json.loads(result["result"].data)
