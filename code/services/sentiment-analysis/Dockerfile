@@ -14,16 +14,16 @@ WORKDIR /app
 COPY ./requirements.txt /app/requirements.txt
 
 # install packages from requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # download spacy model
 RUN python3 -m spacy download en_core_web_sm
 
 # download nltk data
-RUN python -m nltk.downloader averaged_perceptron_tagger
-RUN python -m nltk.downloader punkt
-RUN python -m nltk.downloader vader_lexicon
-RUN python -m nltk.downloader stopwords
+RUN python -c "import nltk;nltk.download('averaged_perceptron_tagger')"
+RUN python -c "import nltk;nltk.download('punkt')"
+RUN python -c "import nltk;nltk.download('vader_lexicon')"
+RUN python -c "import nltk;nltk.download('stopwords')"
 
 # copy all the files
 COPY . /app
