@@ -5,7 +5,7 @@ import requests
 import time
 import uuid
 import threading
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, FileResponse
 from pydantic import BaseModel
@@ -61,6 +61,33 @@ app.add_middleware(
 async def root():
     return RedirectResponse("/docs", status_code=301)
 
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections = {}
+
+    async def connect(self, websocket: WebSocket, id: str):
+        await websocket.accept()
+        print(f"websocket {id} accepted")
+        self.active_connections[id] = websocket
+
+    async def disconnect(self, id: str):
+        print(f"websocket {id} disconnected")
+        await self.active_connections[id].close()
+        del self.active_connections[id]
+
+    async def send_json(self, message: dict, id: str):
+        await self.active_connections[id].send_json(message)
+
+    async def send_bytes(self, message: bytes, id: str):
+        await self.active_connections[id].send_bytes(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections.values():
+            await connection.send_text(message)
+
+
+manager = ConnectionManager()
+
 class PipelineStatus(str, Enum):
     CREATED = "created"
     WAITING = "waiting"
@@ -105,7 +132,6 @@ async def save_audio(audio: io.BytesIO, file_type: str):
         print(e)
         raise HTTPException(status_code=500, detail="Error while processing audio file")
 
-
 def delete_pipeline(pipeline_id: str):
     for pipeline in pipelines:
         if pipeline.informations.id == pipeline_id:
@@ -119,7 +145,6 @@ def delete_pipeline(pipeline_id: str):
             return
     return None
 
-# Get first waiting pipeline
 def get_waiting_pipeline():
     for pipeline in pipelines:
         if pipeline.informations.status == PipelineStatus.WAITING:
@@ -131,7 +156,6 @@ def delete_finished_pipelines():
         if pipeline.informations.status == PipelineStatus.FINISHED:
             delete_pipeline(pipeline.informations.id)
 
-# Get pipeline by id
 def get_pipeline_by_id(pipeline_id: str):
     for pipeline in pipelines:
         if pipeline.informations.id == pipeline_id:
@@ -143,6 +167,23 @@ def start_pipeline_thread():
     asyncio.set_event_loop(loop)
     loop.run_until_complete(run_pipeline())
 
+# Update pipeline status and send it to the client
+async def update_pipeline_status(pipeline: Pipeline, status: PipelineStatus):
+    pipeline.informations.status = status
+    # find the client websocket with the same id
+    for connection_id, _ in manager.active_connections.items():
+        if connection_id == pipeline.informations.id:
+            await manager.send_json(pipeline.informations.json(), connection_id)
+            return
+
+
+def isResponseOK(response: requests.Response):
+    if response.status_code != 200:
+        print("Error while calling service", response.status_code, response.content)
+        return False
+    return True
+
+
 # Execute all the waiting pipelines
 async def run_pipeline():
     while get_waiting_pipeline() is not None:
@@ -150,57 +191,52 @@ async def run_pipeline():
 
         if pipeline.audio_path is None:
             # Call youtube-downloader service
-            pipeline.informations.status = PipelineStatus.RUNNING_YOUTUBE_DOWNLOADER
+            await update_pipeline_status(pipeline, PipelineStatus.RUNNING_YOUTUBE_DOWNLOADER)
             print("Calling youtube-downloader service", YOUTUBE_DOWNLOADER_URL + SERVICE_ROUTE)
             response = requests.post(YOUTUBE_DOWNLOADER_URL + SERVICE_ROUTE, params={"url": pipeline.url})
-            if response.status_code != 200:
-                print(response.request.url)
-                print(response.text)
-                pipeline.informations.status = PipelineStatus.FAILED
+            if not isResponseOK(response):
+                await update_pipeline_status(pipeline, PipelineStatus.FAILED)
                 continue
             # Transform response.content to a BinaryIO
             audio = io.BytesIO(response.content)
             pipeline.audio_path = await save_audio(audio, "mp3")
-            print("Audio saved to", pipeline.audio_path)    
+
 
         # Call whisper service
-        pipeline.informations.status = PipelineStatus.RUNNING_WHISPER
+        await update_pipeline_status(pipeline, PipelineStatus.RUNNING_WHISPER)
         audio_file = open(pipeline.audio_path, "rb")
         audio_file_bytes = audio_file.read()
         audio_type = pipeline.audio_type if pipeline.audio_type else "audio/wav"
         print("Calling whisper service", WHISPER_URL + SERVICE_ROUTE)
         response = requests.post(WHISPER_URL + SERVICE_ROUTE, files={"audio": (pipeline.audio_path, audio_file_bytes, audio_type)})
         audio_file.close()
-        if response.status_code != 200:
-            print(response.text)
-            pipeline.informations.status = PipelineStatus.FAILED
+        if not isResponseOK(response):
+            await update_pipeline_status(pipeline, PipelineStatus.FAILED)
             continue
         lyrics = response.json()
         lyrics = lyrics["text"]
 
         # Call sentiment-analysis service
-        pipeline.informations.status = PipelineStatus.RUNNING_SENTIMENT
+        await update_pipeline_status(pipeline, PipelineStatus.RUNNING_SENTIMENT)
         print("Calling sentiment-analysis service", SENTIMENT_ANALYSIS_URL + SERVICE_ROUTE)
         response = requests.post(SENTIMENT_ANALYSIS_URL + SERVICE_ROUTE, json={"text": lyrics})
-        if response.status_code != 200:
-            print(response.text)
-            pipeline.informations.status = PipelineStatus.FAILED
+        if not isResponseOK(response):
+            await update_pipeline_status(pipeline, PipelineStatus.FAILED)
             continue
         sentiment_analysis = response.json()
 
         # Call music-style service
-        pipeline.informations.status = PipelineStatus.RUNNING_MUSIC_STYLE
+        await update_pipeline_status(pipeline, PipelineStatus.RUNNING_MUSIC_STYLE)
         print("Calling music-style service", MUSIC_STYLE_URL + SERVICE_ROUTE)
         response = requests.post(MUSIC_STYLE_URL + SERVICE_ROUTE, files={"audio": (pipeline.audio_path, audio_file_bytes, audio_type)})
-        if response.status_code != 200:
-            pipeline.informations.status = PipelineStatus.FAILED
-            print(response.text)
+        if not isResponseOK(response):
+            await update_pipeline_status(pipeline, PipelineStatus.FAILED)
             continue
         music_style = response.json()
 
 
         # Call image-generation service
-        pipeline.informations.status = PipelineStatus.RUNNING_IMAGE_GENERATION
+        await update_pipeline_status(pipeline, PipelineStatus.RUNNING_IMAGE_GENERATION)
         print("Calling image-generation service", ART_GENERATION_URL + SERVICE_ROUTE)
         image_data = {
             "lyrics_analysis": sentiment_analysis,
@@ -209,9 +245,8 @@ async def run_pipeline():
             }
         }
         response = requests.post(ART_GENERATION_URL + SERVICE_ROUTE, json=image_data)
-        if response.status_code != 200:
-            pipeline.informations.status = PipelineStatus.FAILED
-            print(response.text)
+        if not isResponseOK(response):
+            await update_pipeline_status(pipeline, PipelineStatus.FAILED)
             continue
         
         print("Creating zip file with generated images")
@@ -227,7 +262,7 @@ async def run_pipeline():
                 f.writestr(file, zf.read(file))
 
         pipeline.result_path = archive_path
-        pipeline.informations.status = PipelineStatus.RESULT_READY
+        await update_pipeline_status(pipeline, PipelineStatus.RESULT_READY)
 
 @app.get("/reload", tags=['Pipeline'])
 async def reload():
@@ -335,6 +370,25 @@ async def reset_pipelines():
     for file in os.listdir("./results/"):
         if file != ".gitkeep":
             os.remove("./results/"+file)
+
+@app.websocket("/ws/{pipeline_id}")
+async def websocket_endpoint(websocket: WebSocket, pipeline_id: str):
+    '''
+    Websocket endpoint for the pipeline status
+    '''
+    pipeline = get_pipeline_by_id(pipeline_id)
+    if pipeline is None:
+        # Refuse connection
+        await websocket.send_json({"error": "Invalid pipeline id"})
+        await websocket.close()
+        return
+
+    await manager.connect(websocket, pipeline.informations.id)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(pipeline.informations.id)
 
 if __name__ == "__main__":
     # Create test pipeline
