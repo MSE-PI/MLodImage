@@ -63,7 +63,7 @@ jobs:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
         if: ${{ steps.model-check.outputs.return-code == 1 }}
         run: |
-           kubectl -n $NAMESPACE apply -f train-model-pod.yml
+           kubectl -n $NAMESPACE apply -f ../../k8s/train-model-pod.yml
            kubectl wait -n $NAMESPACE --for=condition=complete job/model-trainer --timeout=-1s     
 
       - name: Clean all jobs that are finished
