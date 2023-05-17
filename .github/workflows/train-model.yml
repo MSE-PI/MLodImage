@@ -58,7 +58,7 @@ jobs:
           python3 check-train.py
           echo "::set-output name=return-code::$?"
 
-      - name: If needed, run a training job in k8s and wait for it to finish
+      - name: Run a training job in k8s and wait for it to finish
         env:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
         if: ${{ steps.model-check.outputs.return-code == 1 }}
@@ -76,7 +76,6 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         if: ${{ steps.model-check.outputs.return-code == 1 }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Update model"
           title: "Apply model changes"
           body: "This PR was automatically created by the train-model-workflow"
