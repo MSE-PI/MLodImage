@@ -8,6 +8,22 @@ spec:
       containers:
         - image: ghcr.io/mse-pi/test:latest
           name: model-trainer
+          env:
+            - name: MINIO_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: cred-secret
+                  key: minio_pwd
+            - name: MINIO_USR
+              valueFrom:
+                secretKeyRef:
+                  name: cred-secret
+                  key: minio_usr
+            - name: TRAIN_BRANCH
+              valueFrom:
+                secretKeyRef:
+                  name: cred-secret
+                  key: train_branch
       restartPolicy: Never
       imagePullSecrets:
         - name: github-cred

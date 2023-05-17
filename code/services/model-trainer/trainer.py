@@ -5,18 +5,19 @@ import os
 from datetime import datetime
 
 GIT_REPO: str = "https://github.com/MSE-PI/MLodImage.git"
-BRANCH_NAME: str = "train-model"
+BRANCH_NAME: str = os.environ["TRAIN_BRANCH"]
 MINIO_USR: str = os.environ["MINIO_USR"]
 MINIO_PWD: str = os.environ["MINIO_PWD"]
 
 
 def main():
     # create a new branch
-    now = datetime.now()
-    os.system(f"git checkout -b {BRANCH_NAME}-{int(now.timestamp())}")
+    os.system(f"git checkout -b {BRANCH_NAME}")
     # dvc pull, train model, test, ...
     # TODO
+    print(BRANCH_NAME + " " + MINIO_USR + " " + MINIO_PWD)
     # commit and push changes
+    now = datetime.now()
     os.system(f"git add . && git commit -m \"{now}: model train\"")
     os.system(f"git push --set-upstream origin {BRANCH_NAME}-{int(now.timestamp())}")
 

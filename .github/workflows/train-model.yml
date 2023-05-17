@@ -5,7 +5,7 @@ name: train-model-workflow
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "_develop" ]
+    branches: [ "feature_mlops" ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -36,6 +36,7 @@ jobs:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
           MINIO_USR: ${{ secrets.MINIO_USR }}
           MINIO_PWD: ${{ secrets.MINIO_PWD }}
+          TRAIN_BRANCH: ${{ vars.TRAIN_BRANCH }}
         run: |
           envsubst < code/k8s/cred-secret.yml | kubectl apply -n $NAMESPACE -f -
 
@@ -48,20 +49,37 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run python script to check for model/data changes
+        id: model-check
         env:
-          NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
-          DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
           PYTHONUNBUFFERED: 1
         run: |
           cd code/models
           python3 check-train.py 
-          if [ $? -eq 1 ]; then
-              # run a pod in k8s to train the model
-              kubectl -n ${{ vars.SERVICE_NAMESPACE }} apply -f train-model-pod.yml
-          fi
 
-      - name: Wait for the traning pod to finish
+      - name: If needed, run a training job in k8s and wait for it to finish
+        env:
+          NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
+        if: ${{ steps.model-check.outputs.return-code == 1 }}
+        run: |
+           kubectl -n $NAMESPACE apply -f train-model-pod.yml
+           kubectl wait -n $NAMESPACE --for=condition=complete job/model-trainer --timeout=-1s     
+
+      - name: Clean all jobs that are finished
         env:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
         run: |
-           kubectl wait -n services --for=condition=complete job/model-trainer --timeout=300s       
+           kubectl delete jobs -n $NAMESPACE --field-selector status.successful=1   
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        if: ${{ steps.model-check.outputs.return-code == 1 }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update model"
+          title: "Apply model changes"
+          body: "This PR was automatically created by the train-model-workflow"
+          branch: ${{ vars.TRAIN_BRANCH }}
+          delete-branch: false
+          base: "main"
+          reviewers: "aptrc, hofmannflorian, bigthib0"
+          assignees: "ben-jy"
