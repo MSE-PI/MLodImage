@@ -20,7 +20,7 @@ RUN chmod +x add_key.sh
 RUN touch /root/.ssh/id_rsa
 RUN chmod 600 root/.ssh/id_rsa
 
-# add SSH key using shell script
+# add SSH key using shell script --> https://stackoverflow.com/questions/40454470/how-can-i-use-a-variable-inside-a-dockerfile-cmd
 CMD ["sh", "add_key.sh"]
 
 # clone the repo and launch the trainer script
