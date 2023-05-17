@@ -55,7 +55,7 @@ jobs:
         run: |
           cd code/models
           python3 check-train.py
-          echo "::set-output name=return-code::${?}"
+          echo "::set-output name=return-code::$?"
           echo "done"
 
       - name: If needed, run a training job in k8s and wait for it to finish
