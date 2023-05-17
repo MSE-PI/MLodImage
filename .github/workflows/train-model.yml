@@ -48,13 +48,14 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Run python script to check for model/data changes
+      - name: Run python script to check for model/data changes and save exit code to output
         id: model-check
         env:
           PYTHONUNBUFFERED: 1
         run: |
           cd code/models
-          python3 check-train.py 
+          python check_model.py
+          echo "::set-output name=return-code::${?}"
 
       - name: If needed, run a training job in k8s and wait for it to finish
         env:
