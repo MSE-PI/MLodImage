@@ -1,11 +1,28 @@
-FROM python:3.10
+FROM ubuntu:22.04
 
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /app
+# update and install ssh client
+RUN apt update -y && apt install openssh-client -y && apt install python3-pip -y && apt install git -y
 
-# copy all the files
-COPY . /app
+# Authorize SSH Host
+RUN mkdir -p /root/.ssh && \
+    chmod 0700 /root/.ssh && \
+    ssh-keyscan github.com > /root/.ssh/known_hosts
 
-# launch the script
-CMD ["python3", "/app/trainer.py"]
+# https://gist.github.com/perja12/a3f41046e618f031a65b02e6c17e75d8
+# ==> convert key to correct format !!!
+ENV SSH_PRIVATE "-"
+
+COPY ./add_key.sh .
+RUN chmod +x add_key.sh
+
+RUN touch /root/.ssh/id_rsa
+RUN chmod 600 root/.ssh/id_rsa
+
+# add SSH key using shell script --> https://stackoverflow.com/questions/40454470/how-can-i-use-a-variable-inside-a-dockerfile-cmd
+CMD ["sh", "add_key.sh"]
+
+# clone the repo and launch the trainer script
+CMD ["git", "clone", "-b", "develop", "git@github.com:MSE-PI/MLodImage.git" , "app"]
+CMD ["python3", "/app/code/services/model-trainer/trainer.py"]
