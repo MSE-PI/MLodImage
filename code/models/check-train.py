@@ -38,7 +38,7 @@ def main():
             exit(1)
 
     print("Model does not need to be retrained")
-    exit(0)
+    exit(1)
 
 
 if __name__ == '__main__':
