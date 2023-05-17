@@ -53,10 +53,10 @@ jobs:
         env:
           PYTHONUNBUFFERED: 1
         run: |
+          set +e
           cd code/models
           python3 check-train.py
           echo "::set-output name=return-code::$?"
-          echo "done"
 
       - name: If needed, run a training job in k8s and wait for it to finish
         env:
