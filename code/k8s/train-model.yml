@@ -37,6 +37,6 @@ spec:
       restartPolicy: Never
       imagePullSecrets:
         - name: github-cred
-  backoffLimit: 4
+  backoffLimit: 1
 
 

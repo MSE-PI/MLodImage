@@ -11,5 +11,4 @@ COPY ./clone_repo.sh .
 RUN chmod +x clone_repo.sh
 
 # clone the repo and launch the trainer script
-CMD ["sh", "./clone_repo.sh"]
-CMD ["python3", "/app/code/services/model-trainer/trainer.py"]
+CMD sh ./clone_repo.sh && python3 /app/code/services/model-trainer/trainer.py
