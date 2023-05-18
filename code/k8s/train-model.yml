@@ -6,7 +6,7 @@ spec:
   template:
     spec:
       containers:
-        - image: ghcr.io/mse-pi/test:latest
+        - image: ghcr.io/mse-pi/model-trainer:latest
           name: model-trainer
           env:
             - name: MINIO_PWD
