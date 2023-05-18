@@ -24,6 +24,11 @@ spec:
                 secretKeyRef:
                   name: cred-secret
                   key: train_branch
+            - name: GIT_SSH
+              valueFrom:
+                secretKeyRef:
+                  name: cred-secret
+                  key: git_ssh
       restartPolicy: Never
       imagePullSecrets:
         - name: github-cred
