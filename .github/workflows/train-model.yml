@@ -39,7 +39,7 @@ jobs:
           TRAIN_BRANCH: ${{ vars.TRAIN_BRANCH }}
           GIT_SSH: ${{ secrets.GIT_SSH }}
         run: |
-          envsubst < code/k8s/cred-secret.yml | kubectl apply -n $NAMESPACE -f -
+          envsubst < code/k8s/cred-secret.yml | cat
 
       - name: Setup github container registry credentials in k8s
         run: |
