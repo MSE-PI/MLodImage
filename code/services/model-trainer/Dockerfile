@@ -3,6 +3,7 @@ FROM ubuntu:22.04
 ENV PYTHONUNBUFFERED=1
 ENV GIT_USER=-
 ENV GIT_PASSWORD=-
+ENV TRAIN_BRANCH=train
 
 # update and install ssh client
 RUN apt update -y && apt install python3-pip -y && apt install git -y
