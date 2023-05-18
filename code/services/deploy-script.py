@@ -66,7 +66,10 @@ def discover_services() -> None:
             # check if the service has a Dockerfile and is in the list of modified services
             if os.path.isfile(f"{service}/Dockerfile") and service in modified_services:
                 docker_build(service)
-                deploy_service(service)
+                if os.path.isfile(f"{service}/.build-only"):
+                    print(f"Skipping deployment of {service}")
+                else:
+                    deploy_service(service)
 
     # check if the frontend has been modified
     if FRONTEND_DIR_NAME in modified_services:
