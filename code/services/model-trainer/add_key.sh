@@ -1,2 +1,2 @@
 #!/bin/bash
-echo $SSH_PRIVATE >> /root/.ssh/id_rsa
+echo $SSH_PRIVATE | base64 -d >> /root/.ssh/id_rsa
