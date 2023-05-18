@@ -37,6 +37,9 @@ jobs:
           MINIO_USR: ${{ secrets.MINIO_USR }}
           MINIO_PWD: ${{ secrets.MINIO_PWD }}
           TRAIN_BRANCH: ${{ vars.TRAIN_BRANCH }}
+          GIT_USER: ${{ secrets.REGISTRY_USER }}
+          GIT_PASSWORD: ${{ secrets.REGISTRY_TOKEN }}
+
         run: |
           envsubst < code/k8s/cred-secret.yml | kubectl apply -n $NAMESPACE -f -
 

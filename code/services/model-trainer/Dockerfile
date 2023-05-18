@@ -5,7 +5,7 @@ ENV GIT_USER=-
 ENV GIT_PASSWORD=-
 
 # update and install ssh client
-RUN apt update -y && apt install openssh-client -y && apt install python3-pip -y && apt install git -y
+RUN apt update -y && apt install python3-pip -y && apt install git -y
 
 COPY ./clone_repo.sh .
 RUN chmod +x clone_repo.sh

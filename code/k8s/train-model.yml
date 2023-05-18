@@ -27,13 +27,13 @@ spec:
             - name: GIT_USER
               valueFrom:
                 secretKeyRef:
-                  name: github-cred
-                  key: Username
+                  name: cred-secret
+                  key: git_user
             - name: GIT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: github-cred
-                  key: Password
+                  name: cred-secret
+                  key: git_pwd
       restartPolicy: Never
       imagePullSecrets:
         - name: github-cred
