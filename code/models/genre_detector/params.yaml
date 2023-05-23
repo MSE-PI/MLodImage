@@ -1,0 +1,14 @@
+train:
+  batch_size: 32
+  max_epochs: 2
+  val_split: 0.2
+  nb_workers: 10 # set to 0 if you get an error
+
+evaluate:
+  batch_size: 1
+  nb_workers: 10 # set to 0 if you get an error
+
+audio:
+  duration: 30000
+  sample_rate: 44100
+  nb_channels: 2
