@@ -1,0 +1,26 @@
+stages:
+  train:
+    cmd: python train.py
+    deps:
+    - data/FMA
+    - train.py
+    params:
+    - train
+    outs:
+    - model.ckpt
+
+  evaluate:
+    cmd: python evaluate.py
+    deps:
+    - evaluate.py
+    - data/GTZAN
+    - model.ckpt
+    params:
+    - evaluate
+    metrics:
+    - dvc_logs/metrics.json
+    plots:
+    - dvc_logs/plots/sklearn/cm.json
+    outs:
+    - dvc_logs/report.html
+    - dvc_logs/plots/metrics

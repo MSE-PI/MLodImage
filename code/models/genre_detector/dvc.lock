@@ -1,0 +1,59 @@
+schema: '2.0'
+stages:
+  train:
+    cmd: python train.py
+    deps:
+    - path: data/FMA
+      md5: b120a0dda134f5a4fd234f6b3a2e32f7.dir
+      size: 7654660117
+      nfiles: 6573
+    - path: train.py
+      md5: 2ab99cce8920afcafd6e672269d262af
+      size: 3751
+    params:
+      params.yaml:
+        train:
+          batch_size: 32
+          max_epochs: 2
+          val_split: 0.2
+          nb_workers: 10
+    outs:
+    - path: model.ckpt
+      md5: 002cea5b23e845f47c71dee386475c93
+      size: 440700575
+      isexec: true
+  evaluate:
+    cmd: python evaluate.py
+    deps:
+    - path: data/GTZAN
+      md5: 24037af89e8bd6eea2b2fd68fcce51ff.dir
+      size: 1323915703
+      nfiles: 1001
+    - path: evaluate.py
+      md5: 4850777dc740933b85f261cc540982c0
+      size: 4138
+    - path: model.ckpt
+      md5: 002cea5b23e845f47c71dee386475c93
+      size: 440700575
+    params:
+      params.yaml:
+        evaluate:
+          batch_size: 1
+          nb_workers: 10
+    outs:
+    - path: dvc_logs/metrics.json
+      md5: 3e29269a72311c12d8963004465d2b20
+      size: 38
+      isexec: true
+    - path: dvc_logs/plots/metrics
+      md5: 0d146aff63c57e839ac6d8ecd21c2a3c.dir
+      size: 35
+      nfiles: 1
+    - path: dvc_logs/plots/sklearn/cm.json
+      md5: 5cce00b75d53983654ed799d175ae114
+      size: 118608
+      isexec: true
+    - path: dvc_logs/report.html
+      md5: 6880a45bf458e8ade63aef98a272a32d
+      size: 73067
+      isexec: true
