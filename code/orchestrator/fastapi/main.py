@@ -157,7 +157,9 @@ def delete_finished_pipelines():
             delete_pipeline(pipeline.informations.id)
 
 def get_pipeline_by_id(pipeline_id: str):
+    print("get_pipeline_by_id", pipeline_id)
     for pipeline in pipelines:
+        print(pipeline.informations.id)
         if pipeline.informations.id == pipeline_id:
             return pipeline
     return None
@@ -248,7 +250,7 @@ async def run_pipeline():
         if not isResponseOK(response):
             await update_pipeline_status(pipeline, PipelineStatus.FAILED)
             continue
-        
+
         print("Creating zip file with generated images")
         zip_file_content = response.content
 
@@ -280,7 +282,7 @@ async def create_pipeline(audio: Optional[UploadFile] = File(None), url: Optiona
 
     # Generate a random id and create a new pipeline
     pipeline = Pipeline(informations=PipelineInformation(status=PipelineStatus.CREATED, id=str(uuid.uuid4())))
-    
+
     # Check if audio file or url is given
     if audio is None and url is None:
         raise HTTPException(status_code=400, detail="No audio file or url given")
@@ -298,7 +300,7 @@ async def create_pipeline(audio: Optional[UploadFile] = File(None), url: Optiona
         tmp = audio.filename.split('.')
         file_type = tmp[len(tmp) - 1]
         pipeline.audio_path = await save_audio(audio.file, file_type)
-    
+
     pipelines.append(pipeline)
     return pipeline.informations
 
@@ -314,9 +316,9 @@ async def submit_pipeline(pipeline_id: str):
         raise HTTPException(status_code=400, detail="Invalid pipeline id")
     if pipeline.informations.status != PipelineStatus.CREATED:
         raise HTTPException(status_code=400, detail="The pipeline was already submitted")
-    
+
     pipeline.informations.status = PipelineStatus.WAITING
-    
+
     threading.Thread(target=start_pipeline_thread).start()
 
     return PipelineInformation(id=pipeline_id, status=PipelineStatus.WAITING)
@@ -343,9 +345,9 @@ async def get_pipeline_result(pipeline_id: str):
     # Check if pipeline is finished
     if pipeline.informations.status != PipelineStatus.RESULT_READY:
         raise HTTPException(status_code=400, detail="Pipeline is not finished yet")
-    
+
     pipeline.informations.status = PipelineStatus.FINISHED
-    
+
     return FileResponse(pipeline.result_path, media_type="application/zip", filename=pipeline.result_path)
 
 @app.get("/pipelines", tags=['Pipeline'])
@@ -365,7 +367,7 @@ async def reset_pipelines():
     for file in os.listdir("./audios/"):
         if file != ".gitkeep":
             os.remove("./audios/"+file)
-            
+
     # Remove all files in the results folder
     for file in os.listdir("./results/"):
         if file != ".gitkeep":
@@ -379,6 +381,7 @@ async def websocket_endpoint(websocket: WebSocket, pipeline_id: str):
     pipeline = get_pipeline_by_id(pipeline_id)
     if pipeline is None:
         # Refuse connection
+        await manager.connect(websocket, pipeline_id)
         await websocket.send_json({"error": "Invalid pipeline id"})
         await websocket.close()
         return

@@ -1,21 +1,31 @@
 <script setup lang="ts">
-import { Status, StatusMessage, MessageIcon, MessageColor, store } from '@/utils/store';
+import { MessageColor, MessageIcon, Status, StatusMessage, store } from '@/utils/store';
 import { get, getResults, postFile, postURL } from './utils/api';
 import FileUpload from '@/components/FileUpload.vue';
 import JSZip from 'jszip';
-import { WebSocket } from 'vite';
 
-const TIMEOUT = 100;
 let ws: WebSocket;
 
 const initWebSocket = () => {
-    ws = new WebSocket(`wss://orchestrator-mlodimage.kube.isc.heia-fr.ch/ws/${store.execution_id}`);
+    ws = new WebSocket(`ws://localhost:8282/ws/${store.execution_id}`);
 
-    ws.on("open", () => {
-        console.log("Connected to orchestrator");
-    });
-    ws.on("message", (data: any) => {
-        const message = JSON.parse(data);
+    ws.onopen = () => {
+        console.log(`WebSocket Client Connected with execution_id ${store.execution_id}`);
+    };
+
+    ws.onclose = () => {
+        console.log('WebSocket Client Disconnected');
+    };
+
+    ws.onerror = (e) => {
+        console.log('Connection Error', e);
+    };
+
+    ws.onmessage = (msg) => {
+        let cleanString = msg.data.replace(/\\/g, "");
+        cleanString = cleanString.replace(/"{/g, "{");
+        cleanString = cleanString.replace(/}"/g, "}");
+        const message = JSON.parse(cleanString);
         setStatus(message.status);
         if (message.status == Status.RESULT_READY) {
             getResult();
@@ -24,16 +34,10 @@ const initWebSocket = () => {
         } else {
             console.log(message);
         }
-    });
-    ws.on("close", () => {
-        console.log('Connection closed');
-    });
-    ws.on("error", (err: any) => {
-        console.log(err);
-    });
+    }
 }
 
-const setStatus = (status: Status) => {
+const setStatus = (status: any) => {
     store.status = status;
     store.progress = adaptProgress(status);
     store.status_message = changeStatusMessage(status);
@@ -47,6 +51,9 @@ const resetStore = () => {
     store.disabled = true;
     store.execution_id = '';
     setStatus(Status.IDLE);
+    if (ws) {
+        ws.close();
+    }
 };
 
 const adaptProgress = (status: Status) => {
@@ -147,39 +154,15 @@ const changeMessageColor = (status: Status) => {
     }
 };
 
-const waitForResult = async () => {
-    const result = await get(`https://orchestrator-mlodimage.kube.isc.heia-fr.ch/status/${store.execution_id}`);
-    if (!result) {
-        setTimeout(waitForResult, TIMEOUT);
-        setStatus(Status.FAILED);
-        store.disabled = false;
-        return;
-    } else {
-        setStatus(result);
-        if (store.status == Status.RESULT_READY) {
-            getResult();
-            return;
-        } else if (store.status == Status.FAILED) {
-            return;
-        } else {
-            setTimeout(waitForResult, TIMEOUT);
-            return;
-        }
-    }
-};
-
 const launchPipeline = async () => {
-    const result = await get(`https://orchestrator-mlodimage.kube.isc.heia-fr.ch/run/${store.execution_id}`);
+    const result = await get(`http://localhost:8282/run/${store.execution_id}`);
     if (!result) {
         setStatus(Status.FAILED);
         store.disabled = false;
         return;
     } else {
+        initWebSocket();
         setStatus(result.status);
-        if (result.status == Status.WAITING) {
-            setTimeout(waitForResult, TIMEOUT);
-            return;
-        }
     }
 };
 
@@ -187,22 +170,21 @@ const handleClick = async () => {
     store.disabled = true;
     let result;
     if (store.file.name.length > 0) {
-        result = await postFile('https://orchestrator-mlodimage.kube.isc.heia-fr.ch/create', store.file!);
+        result = await postFile('http://localhost:8282/create', store.file!);
     } else {
         result = await postURL('https://orchestrator-mlodimage.kube.isc.heia-fr.ch/create', store.url);
     }
     if (result) {
         store.execution_id = result.id;
         setStatus(result.status);
-        // launchPipeline();
-        initWebSocket();
+        await launchPipeline();
     } else {
         store.disabled = false;
     }
 };
 
 const getResult = async () => {
-    const result = await getResults(`https://orchestrator-mlodimage.kube.isc.heia-fr.ch/result/${store.execution_id}`);
+    const result = await getResults(`http://localhost:8282/result/${store.execution_id}`);
     if (result) {
         store.result.zip_file = result as Blob;
         const zip = new JSZip();
@@ -216,6 +198,7 @@ const getResult = async () => {
         // @ts-ignore-next-line
         store.result.images = images;
         store.disabled = false;
+        ws.close();
     }
 };
 
@@ -236,7 +219,6 @@ const downloadAll = () => {
     link.click();
     document.body.removeChild(link);
 };
-
 </script>
 
 <template>
@@ -245,18 +227,18 @@ const downloadAll = () => {
             <v-row align="center" justify="center">
                 <v-col cols="12" sm="8" md="6" lg="4">
                     <v-card
-                            width="100%"
-                            class="mx-auto gradient radius-8 card-container"
-                            elevation="10"
+                        width="100%"
+                        class="mx-auto gradient radius-8 card-container"
+                        elevation="10"
                     >
                         <v-card-title class="headline card">
                             <img
-                                    class="mt-3"
-                                    src="@/assets/logo.svg"
-                                    alt="logo"/>
+                                class="mt-3"
+                                src="@/assets/logo.svg"
+                                alt="logo"/>
                         </v-card-title>
                         <v-card-text
-                                v-if="
+                            v-if="
                                 store.status == Status.CREATED ||
                                 store.status == Status.WAITING ||
                                 store.status == Status.RUNNING_YOUTUBE_DOWNLOADER ||
@@ -264,24 +246,24 @@ const downloadAll = () => {
                                 store.status == Status.RUNNING_MUSIC_STYLE ||
                                 store.status == Status.RUNNING_SENTIMENT ||
                                 store.status == Status.RUNNING_IMAGE_GENERATION"
-                                class="card card-middle"
+                            class="card card-middle"
                         >
                             <v-row>
                                 <v-col>
                                     <v-progress-linear
-                                            class="radius-8"
-                                            v-model="store.progress"
-                                            :buffer-value="store.progress"
-                                            color="orange"
-                                            height="10"
+                                        class="radius-8"
+                                        v-model="store.progress"
+                                        :buffer-value="store.progress"
+                                        color="orange"
+                                        height="10"
                                     />
                                     <v-chip
-                                            :color="store.message_color"
-                                            text-color="white"
-                                            class="card mt-2"
-                                            size="large"
-                                            label
-                                            :prepend-icon="store.message_icon"
+                                        :color="store.message_color"
+                                        text-color="white"
+                                        class="card mt-2"
+                                        size="large"
+                                        label
+                                        :prepend-icon="store.message_icon"
                                     >
                                         {{ store.status_message }}
                                     </v-chip>
@@ -290,31 +272,31 @@ const downloadAll = () => {
                             <v-row class="text-center">
                                 <v-col>
                                     <v-progress-circular
-                                            class="radius-8"
-                                            :size="70"
-                                            :width="7"
-                                            :value="store.progress"
-                                            :color="store.message_color"
-                                            indeterminate
+                                        class="radius-8"
+                                        :size="70"
+                                        :width="7"
+                                        :value="store.progress"
+                                        :color="store.message_color"
+                                        indeterminate
                                     />
                                 </v-col>
                             </v-row>
                         </v-card-text>
                         <v-card-text
-                                v-else-if="store.status == Status.RESULT_READY || store.status == Status.FAILED"
-                                class="card card-middle pb-2">
+                            v-else-if="store.status == Status.RESULT_READY || store.status == Status.FAILED"
+                            class="card card-middle pb-2">
                             <v-carousel
-                                    v-if="store.status == Status.RESULT_READY && store.result.images.length > 0"
-                                    hide-delimiters
-                                    sm="12"
-                                    class="pt-0 radius-8"
-                                    show-arrows="hover"
-                                    style="height: auto"
+                                v-if="store.status == Status.RESULT_READY && store.result.images.length > 0"
+                                hide-delimiters
+                                sm="12"
+                                class="pt-0 radius-8"
+                                show-arrows="hover"
+                                style="height: auto"
                             >
                                 <v-carousel-item
-                                        v-for="(image, index) in store.result.images"
-                                        :key="index"
-                                        :src="image"
+                                    v-for="(image, index) in store.result.images"
+                                    :key="index"
+                                    :src="image"
                                 >
                                     <div class="title d-flex flex-row card-middle pt-4 pl-4">
                                         <v-btn color="pink"
@@ -328,12 +310,12 @@ const downloadAll = () => {
                                 </v-carousel-item>
                             </v-carousel>
                             <v-chip
-                                    v-if="store.status == Status.FAILED"
-                                    color="red"
-                                    text-color="white"
-                                    class="card"
-                                    size="large"
-                                    prepend-icon="mdi mdi-alert-octagon-outline"
+                                v-if="store.status == Status.FAILED"
+                                color="red"
+                                text-color="white"
+                                class="card"
+                                size="large"
+                                prepend-icon="mdi mdi-alert-octagon-outline"
                             >
                                 Error
                             </v-chip>
@@ -343,15 +325,15 @@ const downloadAll = () => {
                                 <v-row class="text-center">
                                     <v-col class="pb-0">
                                         <v-text-field
-                                                label="YouTube URL"
-                                                icon="mdi-youtube"
-                                                variant="solo"
-                                                class="radius-8"
-                                                prepend-inner-icon="mdi mdi-youtube"
-                                                @input="store.disabled = store.url.length == 0"
-                                                v-model="store.url"
-                                                :disabled="store.file.name.length > 0"
-                                        ></v-text-field>
+                                            label="YouTube URL"
+                                            color="orange"
+                                            icon="mdi-youtube"
+                                            variant="solo"
+                                            prepend-inner-icon="mdi mdi-youtube"
+                                            @input="store.disabled = store.url.length == 0"
+                                            v-model="store.url"
+                                            :disabled="store.file.name.length > 0"
+                                        />
                                     </v-col>
                                 </v-row>
                                 <v-row class="text-center mt-1">
@@ -369,68 +351,68 @@ const downloadAll = () => {
                         <v-card-actions class="pl-4 pr-4 pb-4 card">
                             <v-row v-if="store.status == Status.RESULT_READY || store.status == Status.FAILED">
                                 <v-col
-                                        cols="9"
-                                        class="pr-0"
-                                        v-if="store.status == Status.RESULT_READY"
+                                    cols="9"
+                                    class="pr-0"
+                                    v-if="store.status == Status.RESULT_READY"
                                 >
                                     <v-btn
-                                            elevation="2"
-                                            color="success"
-                                            variant="flat"
-                                            size="x-large"
-                                            class="radius-8"
-                                            height="100%"
-                                            block
-                                            v-bind="store"
-                                            @click="downloadAll"
-                                            prepend-icon="mdi mdi-folder-arrow-down-outline"
-                                            title="Download all files"
+                                        elevation="2"
+                                        color="success"
+                                        variant="flat"
+                                        size="x-large"
+                                        class="radius-8"
+                                        height="100%"
+                                        block
+                                        v-bind="store"
+                                        @click="downloadAll"
+                                        prepend-icon="mdi mdi-folder-arrow-down-outline"
+                                        title="Download all files"
                                     >
                                         Download
                                     </v-btn>
                                 </v-col>
                                 <v-col>
                                     <v-btn
-                                            v-if="store.status == Status.FAILED"
-                                            elevation="2"
-                                            color="orange"
-                                            variant="elevated"
-                                            size="large"
-                                            class="radius-8"
-                                            block
-                                            @click="resetStore"
-                                            prepend-icon="mdi mdi-refresh"
-                                            title="Reset"
+                                        v-if="store.status == Status.FAILED"
+                                        elevation="2"
+                                        color="orange"
+                                        variant="elevated"
+                                        size="large"
+                                        class="radius-8"
+                                        block
+                                        @click="resetStore"
+                                        prepend-icon="mdi mdi-refresh"
+                                        title="Reset"
                                     >
                                         Start Over
                                     </v-btn>
                                     <v-btn
-                                            v-else
-                                            elevation="2"
-                                            color="orange"
-                                            variant="elevated"
-                                            size="large"
-                                            class="radius-8"
-                                            block
-                                            @click="resetStore"
-                                            icon="mdi mdi-refresh"
-                                            title="Reset"
+                                        v-else
+                                        elevation="2"
+                                        color="orange"
+                                        variant="elevated"
+                                        size="large"
+                                        class="radius-8"
+                                        block
+                                        @click="resetStore"
+                                        icon="mdi mdi-refresh"
+                                        title="Reset"
                                     />
                                 </v-col>
                             </v-row>
                             <v-row
-                                    v-if="store.status != Status.RESULT_READY && store.status != Status.FAILED">
+                                v-if="store.status != Status.RESULT_READY && store.status != Status.FAILED">
                                 <v-col>
                                     <v-btn
-                                            elevation="2"
-                                            color="orange"
-                                            variant="flat"
-                                            size="x-large"
-                                            class="radius-8"
-                                            block
-                                            v-bind="store"
-                                            @click="handleClick"
-                                            :prepend-icon="store.status == Status.IDLE ?
+                                        elevation="2"
+                                        color="orange"
+                                        variant="flat"
+                                        size="x-large"
+                                        class="radius-8"
+                                        block
+                                        v-bind="store"
+                                        @click="handleClick"
+                                        :prepend-icon="store.status == Status.IDLE ?
                                             'mdi mdi-play-box-outline' : 'mdi mdi-clock-outline'"
                                     >
                                         {{ store.status == Status.IDLE ? 'Launch' : ' Running...' }}
