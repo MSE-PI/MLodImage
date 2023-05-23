@@ -1,13 +1,13 @@
 schema: '2.0'
 stages:
   train:
-    cmd: python train.py
+    cmd: python src/train.py
     deps:
     - path: data/FMA
       md5: b120a0dda134f5a4fd234f6b3a2e32f7.dir
       size: 7654660117
       nfiles: 6573
-    - path: train.py
+    - path: src/train.py
       md5: 2ab99cce8920afcafd6e672269d262af
       size: 3751
     params:
@@ -19,7 +19,7 @@ stages:
           nb_workers: 10
     outs:
     - path: model.ckpt
-      md5: 002cea5b23e845f47c71dee386475c93
+      md5: 7fdbf89a7ba05a2b438831330a32f04f
       size: 440700575
       isexec: true
   evaluate:

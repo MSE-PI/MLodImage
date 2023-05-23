@@ -34,6 +34,11 @@ spec:
                 secretKeyRef:
                   name: cred-secret
                   key: git_pwd
+            - name: WANDB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cred-secret
+                  key: wandb_api_key
       restartPolicy: Never
       imagePullSecrets:
         - name: github-cred

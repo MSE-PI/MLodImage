@@ -7,8 +7,13 @@ ENV GIT_PASSWORD=-
 # update and install ssh client
 RUN apt update -y && apt install python3-pip -y && apt install git -y
 
+# install python dependencies
+COPY ./requirements.txt .
+
+RUN pip3 install -r requirements.txt
+
 COPY ./clone_repo.sh .
 RUN chmod +x clone_repo.sh
 
-# clone the repo and launch the trainer script
-CMD sh ./clone_repo.sh && python3 /app/code/services/model-trainer/trainer.py
+# launch the training script
+CMD sh ./train.sh

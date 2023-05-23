@@ -7,7 +7,7 @@ __date__ = "10.05.2023"
 
 import os
 
-FILES_TO_TRACK = ["genre_detector.py"]
+FILES_TO_TRACK = ["src", "data.dvc", "dvc.yaml", "params.yaml"]
 
 
 def get_modified_files() -> list:
@@ -38,7 +38,7 @@ def main():
             exit(1)
 
     print("Model does not need to be retrained")
-    exit(1)
+    exit(0)
 
 
 if __name__ == '__main__':
