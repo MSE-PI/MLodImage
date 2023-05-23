@@ -11,16 +11,16 @@ MINIO_PWD: str = os.environ["MINIO_PWD"]
 
 def main():
     # create a new branch
-    os.system(f"git checkout -b {BRANCH_NAME}")
+    os.system(f" git --git-dir=/app/.git checkout -b {BRANCH_NAME}")
     # dvc pull, train model, test, ...
     # TODO
     # create a test file and write the timestamp
-    with open("test.txt", "w") as f:
+    with open("/app/test.txt", "w") as f:
         f.write(str(datetime.now()))
     # commit and push changes
     now = datetime.now()
-    os.system(f"git add . && git commit -m \"{now}: model updated\"")
-    os.system(f"git push --set-upstream origin {BRANCH_NAME}-{int(now.timestamp())}")
+    os.system(f"git --git-dir=/app/.git add . && git commit -m \"{now}: model updated\"")
+    os.system(f"git --git-dir=/app/.git push --set-upstream origin {BRANCH_NAME}-{int(now.timestamp())}")
 
 
 # entry point
