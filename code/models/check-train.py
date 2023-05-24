@@ -18,7 +18,7 @@ def get_modified_files() -> list:
     modified_files = os.popen("git diff --name-only HEAD^ HEAD").read().split("\n")
 
     # filter for only models changes
-    modified_files = list(filter(lambda x: x.startswith("code/services/"), modified_files))
+    modified_files = list(filter(lambda x: x.startswith("models/"), modified_files))
 
     # keep only the service/frontend name
     modified_files = list(map(lambda x: x.split("/")[2], modified_files))

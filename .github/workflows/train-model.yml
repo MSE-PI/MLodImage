@@ -47,10 +47,6 @@ jobs:
         run: |
           kubectl -n ${{ vars.SERVICE_NAMESPACE }} create secret docker-registry github-cred --docker-server=ghcr.io --docker-username=${{ secrets.REGISTRY_USER }} --docker-password=${{ secrets.REGISTRY_TOKEN }} -o yaml --save-config --dry-run=client | kubectl apply -f -
 
-      - name: Install DVC requirements
-        run: |
-          pip install -r requirements.txt
-
       - name: Run python script to check for model/data changes and save exit code to output
         id: model-check
         env:
