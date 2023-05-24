@@ -12,8 +12,8 @@ COPY ./requirements.txt .
 
 RUN pip3 install -r requirements.txt
 
-COPY ./clone_repo.sh .
-RUN chmod +x clone_repo.sh
+COPY ./train.sh .
+RUN chmod +x train.sh
 
 # launch the training script
 CMD sh ./train.sh
