@@ -15,18 +15,15 @@ def get_modified_files() -> list:
     This function returns a list of all files that have been modified in the last commit
     """
     # get list of modified files in the last commit
-    modified_files = os.popen("git diff --name-only HEAD^ HEAD").read().split("\n")
+    modified_files = os.popen("git diff --name-only HEAD~1").read().split("\n")
 
     # filter for only models changes
-    modified_files = list(filter(lambda x: x.startswith("models/"), modified_files))
+    modified_files = list(filter(lambda x: x.startswith("code/models/genre_detector/"), modified_files))
 
-    # keep only the service/frontend name
-    modified_files = list(map(lambda x: x.split("/")[2], modified_files))
+    # keep only the files
+    modified_files = list(map(lambda x: x.split("/"), modified_files))
 
-    # remove duplicates
-    modified_files = list(set(modified_files))
-
-    return modified_files
+    return modified_files[0]
 
 
 def main():
