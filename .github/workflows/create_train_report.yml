@@ -31,8 +31,7 @@ jobs:
           MINIO_USR: ${{ secrets.MINIO_USR }}
           MINIO_PWD: ${{ secrets.MINIO_PWD }}
         run: |
-          dvc remote modify --local storage access_key $MINIO_USR
-          dvc remote modify --local storage secret_key $MINIO_PWD
+          envsubst < .dvc/config > .dvc/config.local
       - name: Setup Node
         uses: actions/setup-node@v3
         with:

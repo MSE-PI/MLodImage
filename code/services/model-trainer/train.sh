@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # CLONE AND PULL DATA
-git config --global credential.helper store
 git clone -b feature_mlops https://$GIT_USER:$GIT_PASSWORD@github.com/MSE-PI/MLodImage.git app
 sleep 2  # wait 2 second to be sure that the clone is done and the branch is checked out
 git config --global user.name "Train POD"
