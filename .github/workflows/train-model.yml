@@ -71,15 +71,20 @@ jobs:
         run: |
            kubectl delete jobs -n $NAMESPACE --field-selector status.successful=1   
 
+      # - name: Create Pull Request
+      #   uses: vsoch/pull-request-action@master
+      #   if: ${{ steps.model-check.outputs.return-code == 1 }}
+      #   with:
+      #     commit-message: "Update model"
+      #     title: "Apply model changes"
+      #     body: "This PR was automatically created by the train-model-workflow"
+      #     branch: ${{ vars.TRAIN_BRANCH }}
+      #     delete-branch: false
+      #     base: "main"
+      #     reviewers: "aptrc, hofmannflorian, bigthib0"
+      #     assignees: "ben-jy"
+
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
         if: ${{ steps.model-check.outputs.return-code == 1 }}
-        with:
-          commit-message: "Update model"
-          title: "Apply model changes"
-          body: "This PR was automatically created by the train-model-workflow"
-          branch: ${{ vars.TRAIN_BRANCH }}
-          delete-branch: false
-          base: "main"
-          reviewers: "aptrc, hofmannflorian, bigthib0"
-          assignees: "ben-jy"
+        run: |
+          gh pr create -B main -H ${{ vars.TRAIN_BRANCH }} --title 'Merge ${{ vars.TRAIN_BRANCH }} into main' --body 'This PR was automatically created by the train-model-workflow' -r aptrc -r hofmannflorian -r bigthib0 -a ben-jy
