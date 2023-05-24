@@ -88,3 +88,5 @@ jobs:
         if: ${{ steps.model-check.outputs.return-code == 1 }}
         run: |
           gh pr create -B main -H ${{ vars.TRAIN_BRANCH }} --title 'Merge ${{ vars.TRAIN_BRANCH }} into main' --body 'This PR was automatically created by the train-model-workflow' -r aptrc -r hofmannflorian -r bigthib0 -a ben-jy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

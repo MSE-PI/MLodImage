@@ -6,8 +6,8 @@ sleep 2  # wait 2 second to be sure that the clone is done and the branch is che
 git config --global user.name "Train POD"
 git config --global user.email "pod@train.mlodimage.ch"
 cd app
-git checkout -b $TRAIN_BRANCH
-git pull origin $TRAIN_BRANCH
+git checkout $TRAIN_BRANCH
+git merge feature_mlops --no-edit
 envsubst < .dvc/config > .dvc/config.local
 dvc pull
 

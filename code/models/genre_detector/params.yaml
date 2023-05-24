@@ -1,12 +1,12 @@
 train:
-  batch_size: 32
+  batch_size: 16
   max_epochs: 1
   val_split: 0.2
-  nb_workers: 20 # set to 0 if you get an error
+  nb_workers: 0 # set to 0 if you get an error
 
 evaluate:
   batch_size: 1
-  nb_workers: 20 # set to 0 if you get an error
+  nb_workers: 0 # set to 0 if you get an error
 
 audio:
   duration: 30000
