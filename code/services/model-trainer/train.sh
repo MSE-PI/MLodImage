@@ -7,6 +7,7 @@ git config --global user.name "Train POD"
 git config --global user.email "pod@train.mlodimage.ch"
 cd app
 git checkout -b $TRAIN_BRANCH
+git pull
 envsubst < .dvc/config > .dvc/config.local
 dvc pull
 
