@@ -75,8 +75,6 @@ jobs:
         run: |
            kubectl delete jobs -n $NAMESPACE --field-selector status.successful=1   
 
-      - name: Download model from minio
-
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         if: ${{ steps.model-check.outputs.return-code == 1 }}
