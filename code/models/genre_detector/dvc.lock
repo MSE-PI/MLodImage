@@ -4,9 +4,9 @@ stages:
     cmd: python src/train.py
     deps:
     - path: data/FMA
-      md5: b120a0dda134f5a4fd234f6b3a2e32f7.dir
-      size: 7654660117
-      nfiles: 6573
+      md5: 516070cc4eac5de0c0527e787c4e374c.dir
+      size: 636715666
+      nfiles: 660
     - path: src/train.py
       md5: 2ab99cce8920afcafd6e672269d262af
       size: 3751
@@ -16,10 +16,10 @@ stages:
           batch_size: 32
           max_epochs: 2
           val_split: 0.2
-          nb_workers: 10
+          nb_workers: 0
     outs:
     - path: model.ckpt
-      md5: 7fdbf89a7ba05a2b438831330a32f04f
+      md5: b9b0c38192940be62a9d2e5f1a808886
       size: 440700575
       isexec: true
   evaluate:
