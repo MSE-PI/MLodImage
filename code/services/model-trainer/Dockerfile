@@ -5,7 +5,7 @@ ENV GIT_USER=-
 ENV GIT_PASSWORD=-
 
 # update and install ssh client
-RUN apt update -y && apt install python3-pip -y && apt install git -y && apt install -y gettext
+RUN apt update -y && apt install python3-pip -y && apt install git -y && apt install -y gettext && apt-get install -y ffmpeg
 
 # install python dependencies
 COPY ./requirements.txt .
