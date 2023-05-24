@@ -1,6 +1,6 @@
 stages:
   train:
-    cmd: python src/train.py
+    cmd: python3 src/train.py
     deps:
     - data/FMA
     - src/train.py
@@ -10,7 +10,7 @@ stages:
     - model.ckpt
 
   evaluate:
-    cmd: python src/evaluate.py
+    cmd: python3 src/evaluate.py
     deps:
     - src/evaluate.py
     - data/GTZAN
