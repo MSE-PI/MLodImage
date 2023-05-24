@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: model-trainer
+spec:
+  template:
+    spec:
+      containers:
+        - image: ghcr.io/mse-pi/model-trainer:latest
+          name: model-trainer
+          env:
+            - name: MINIO_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: cred-secret
+                  key: minio_pwd
+            - name: MINIO_USR
+              valueFrom:
+                secretKeyRef:
+                  name: cred-secret
+                  key: minio_usr
+            - name: TRAIN_BRANCH
+              valueFrom:
+                secretKeyRef:
+                  name: cred-secret
+                  key: train_branch
+            - name: GIT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cred-secret
+                  key: git_user
+            - name: GIT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cred-secret
+                  key: git_pwd
+            - name: WANDB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cred-secret
+                  key: wandb_api_key
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: github-cred
+  backoffLimit: 1
+
+

@@ -1,0 +1,92 @@
+# This is a workflow to deploy all services to k8s cluster
+name: train-model-workflow
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "feature_mlops" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Setup k8s access to kubectl
+        env:
+          KUBERNETES: ${{ secrets.KUBERNETES }}
+        run: |
+          mkdir --parent ~/.kube
+          echo $KUBERNETES | base64 -d > ~/.kube/config
+
+      - name: Setup credentials secret in k8s
+        env:
+          NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
+          MINIO_USR: ${{ secrets.MINIO_USR }}
+          MINIO_PWD: ${{ secrets.MINIO_PWD }}
+          TRAIN_BRANCH: ${{ vars.TRAIN_BRANCH }}
+          GIT_USER: ${{ secrets.REGISTRY_USER }}
+          GIT_PASSWORD: ${{ secrets.REGISTRY_TOKEN }}
+          WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+        run: |
+          envsubst < code/k8s/cred-secret.yml | kubectl apply -n $NAMESPACE -f -
+
+      - name: Setup github container registry credentials in k8s
+        run: |
+          kubectl -n ${{ vars.SERVICE_NAMESPACE }} create secret docker-registry github-cred --docker-server=ghcr.io --docker-username=${{ secrets.REGISTRY_USER }} --docker-password=${{ secrets.REGISTRY_TOKEN }} -o yaml --save-config --dry-run=client | kubectl apply -f -
+
+      - name: Run python script to check for model/data changes and save exit code to output
+        id: model-check
+        env:
+          PYTHONUNBUFFERED: 1
+        run: |
+          set +e
+          cd code/models
+          python3 check-train.py
+          echo "::set-output name=return-code::$?"
+
+      - name: Run a training job in k8s and wait for it to finish
+        env:
+          NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
+        if: ${{ steps.model-check.outputs.return-code == 1 }}
+        run: |
+          kubectl -n $NAMESPACE apply -f code/k8s/train-model.yml
+          kubectl wait -n $NAMESPACE --for=condition=complete job/model-trainer --timeout=-1s     
+
+      - name: Clean all jobs that are finished
+        env:
+          NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
+        run: |
+           kubectl delete jobs -n $NAMESPACE --field-selector status.successful=1   
+
+      # - name: Create Pull Request
+      #   uses: vsoch/pull-request-action@master
+      #   if: ${{ steps.model-check.outputs.return-code == 1 }}
+      #   with:
+      #     commit-message: "Update model"
+      #     title: "Apply model changes"
+      #     body: "This PR was automatically created by the train-model-workflow"
+      #     branch: ${{ vars.TRAIN_BRANCH }}
+      #     delete-branch: false
+      #     base: "main"
+      #     reviewers: "aptrc, hofmannflorian, bigthib0"
+      #     assignees: "ben-jy"
+
+      - name: Create Pull Request
+        if: ${{ steps.model-check.outputs.return-code == 1 }}
+        run: |
+          gh pr create -B main -H ${{ vars.TRAIN_BRANCH }} --title 'Merge ${{ vars.TRAIN_BRANCH }} into main' --body 'This PR was automatically created by the train-model-workflow' -r aptrc -r hofmannflorian -r bigthib0 -a ben-jy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
