@@ -8,7 +8,8 @@ const ORCHESTRATOR_URL = 'orchestrator-mlodimage.kube.isc.heia-fr.ch';
 let ws: WebSocket;
 
 const initWebSocket = () => {
-    ws = new WebSocket(`ws://${ORCHESTRATOR_URL}/ws/${store.execution_id}`);
+    // on localhost, use ws:// instead of wss://
+    ws = new WebSocket(`wss://${ORCHESTRATOR_URL}/ws/${store.execution_id}`);
 
     ws.onopen = () => {
         console.log(`WebSocket Client Connected with execution_id ${store.execution_id}`);
