@@ -31,6 +31,7 @@ def get_modified_files() -> list:
 
 def main():
     modified_files = get_modified_files()
+    print(modified_files)
 
     for file in modified_files:
         if file in FILES_TO_TRACK:
