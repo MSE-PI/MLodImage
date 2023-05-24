@@ -230,7 +230,7 @@ const downloadAll = () => {
                 <v-col cols="12" sm="8" md="6" lg="4">
                     <v-card
                         width="100%"
-                        class="mx-auto gradient radius-8 card-container"
+                        class="mx-auto gradient rounded-lg card-container"
                         elevation="10"
                     >
                         <v-card-title class="headline card">
@@ -253,7 +253,7 @@ const downloadAll = () => {
                             <v-row>
                                 <v-col>
                                     <v-progress-linear
-                                        class="radius-8"
+                                        class="rounded-lg"
                                         v-model="store.progress"
                                         :buffer-value="store.progress"
                                         color="orange"
@@ -274,7 +274,7 @@ const downloadAll = () => {
                             <v-row class="text-center">
                                 <v-col>
                                     <v-progress-circular
-                                        class="radius-8"
+                                        class="rounded-lg"
                                         :size="70"
                                         :width="7"
                                         :value="store.progress"
@@ -291,7 +291,7 @@ const downloadAll = () => {
                                 v-if="store.status == Status.RESULT_READY && store.result.images.length > 0"
                                 hide-delimiters
                                 sm="12"
-                                class="pt-0 radius-8"
+                                class="pt-0 rounded-lg"
                                 show-arrows="hover"
                                 style="height: auto"
                             >
@@ -326,16 +326,19 @@ const downloadAll = () => {
                             <v-container class="pl-0 pr-0 pb-0 pt-0">
                                 <v-row class="text-center">
                                     <v-col class="pb-0">
-                                        <v-text-field
-                                            label="YouTube URL"
-                                            color="orange"
-                                            icon="mdi-youtube"
-                                            variant="solo"
-                                            prepend-inner-icon="mdi mdi-youtube"
-                                            @input="store.disabled = store.url.length == 0"
-                                            v-model="store.url"
-                                            :disabled="store.file.name.length > 0"
-                                        />
+                                        <div class="custom-text-field rounded-lg mb-5">
+                                            <v-text-field
+                                                label="YouTube URL"
+                                                color="orange"
+                                                icon="mdi-youtube"
+                                                variant="solo"
+                                                prepend-inner-icon="mdi mdi-youtube"
+                                                @input="store.disabled = store.url.length == 0"
+                                                v-model="store.url"
+                                                :disabled="store.file.name.length > 0"
+                                                class="pb-4"
+                                            />
+                                        </div>
                                     </v-col>
                                 </v-row>
                                 <v-row class="text-center mt-1">
@@ -362,7 +365,7 @@ const downloadAll = () => {
                                         color="success"
                                         variant="flat"
                                         size="x-large"
-                                        class="radius-8"
+                                        class="rounded-lg"
                                         height="100%"
                                         block
                                         v-bind="store"
@@ -380,7 +383,7 @@ const downloadAll = () => {
                                         color="orange"
                                         variant="elevated"
                                         size="large"
-                                        class="radius-8"
+                                        class="rounded-lg"
                                         block
                                         @click="resetStore"
                                         prepend-icon="mdi mdi-refresh"
@@ -394,7 +397,7 @@ const downloadAll = () => {
                                         color="orange"
                                         variant="elevated"
                                         size="large"
-                                        class="radius-8"
+                                        class="rounded-lg"
                                         block
                                         @click="resetStore"
                                         icon="mdi mdi-refresh"
@@ -410,7 +413,7 @@ const downloadAll = () => {
                                         color="orange"
                                         variant="flat"
                                         size="x-large"
-                                        class="radius-8"
+                                        class="rounded-lg"
                                         block
                                         v-bind="store"
                                         @click="handleClick"
@@ -463,7 +466,8 @@ const downloadAll = () => {
     color: white;
 }
 
-.radius-8 {
-    border-radius: 8px;
+.custom-text-field {
+    overflow: hidden;
+    height: 56px;
 }
 </style>
