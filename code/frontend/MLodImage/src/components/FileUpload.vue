@@ -7,7 +7,7 @@ import { useDropzone } from 'vue3-dropzone';
 const {getRootProps, getInputProps, isDragActive, ...rest} = useDropzone({
     onDrop,
     multiple: false,
-    accept: '.mp3, .ogg, .wav',
+    accept: '.mp3, .ogg',
 });
 
 watch(store, () => {});
