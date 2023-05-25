@@ -1,11 +1,11 @@
 # This is a workflow to deploy all services to k8s cluster
-name: deploy-services-workflow
+name: train-model-workflow
 
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "main" ]
+    branches: [ "feature_mlops" ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -43,21 +43,50 @@ jobs:
         run: |
           envsubst < code/k8s/cred-secret.yml | kubectl apply -n $NAMESPACE -f -
 
-      - name: Log in to github registry
-        # This is where you will update the personal access token to GITHUB_TOKEN
-        run: echo "${{ secrets.REGISTRY_TOKEN }}" | docker login ghcr.io -u ${{ secrets.REGISTRY_USER }} --password-stdin
-
       - name: Setup github container registry credentials in k8s
         run: |
           kubectl -n ${{ vars.SERVICE_NAMESPACE }} create secret docker-registry github-cred --docker-server=ghcr.io --docker-username=${{ secrets.REGISTRY_USER }} --docker-password=${{ secrets.REGISTRY_TOKEN }} -o yaml --save-config --dry-run=client | kubectl apply -f -
 
-
-      - name: Run python script
+      - name: Run python script to check for model/data changes and save exit code to output
+        id: model-check
         env:
-          NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
-          DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
           PYTHONUNBUFFERED: 1
         run: |
-          cd code/services
-          python3 deploy-script.py 
-          
+          set +e
+          cd code/models
+          python3 check-train.py
+          echo "::set-output name=return-code::$?"
+
+      - name: Run a training job in k8s and wait for it to finish
+        env:
+          NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
+        if: ${{ steps.model-check.outputs.return-code == 1 }}
+        run: |
+          kubectl -n $NAMESPACE apply -f code/k8s/train-model.yml
+          kubectl wait -n $NAMESPACE --for=condition=complete job/model-trainer --timeout=-1s     
+
+      - name: Clean all jobs that are finished
+        env:
+          NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
+        run: |
+           kubectl delete jobs -n $NAMESPACE --field-selector status.successful=1   
+
+      # - name: Create Pull Request
+      #   uses: vsoch/pull-request-action@master
+      #   if: ${{ steps.model-check.outputs.return-code == 1 }}
+      #   with:
+      #     commit-message: "Update model"
+      #     title: "Apply model changes"
+      #     body: "This PR was automatically created by the train-model-workflow"
+      #     branch: ${{ vars.TRAIN_BRANCH }}
+      #     delete-branch: false
+      #     base: "main"
+      #     reviewers: "aptrc, hofmannflorian, bigthib0"
+      #     assignees: "ben-jy"
+
+      - name: Create Pull Request
+        if: ${{ steps.model-check.outputs.return-code == 1 }}
+        run: |
+          gh pr create -B main -H ${{ vars.TRAIN_BRANCH }} --title 'Merge ${{ vars.TRAIN_BRANCH }} into main' --body 'This PR was automatically created by the train-model-workflow' -r aptrc -r hofmannflorian -r bigthib0 -a ben-jy
+        env:
+          GH_TOKEN: ${{ secrets.PR_TOKEN }}
