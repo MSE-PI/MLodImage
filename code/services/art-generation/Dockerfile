@@ -16,6 +16,9 @@ COPY ./requirements.txt /app/requirements.txt
 # copy v1-inference.yaml
 COPY ./v1-inference.yaml /app/v1-inference.yaml
 
+# download and copy model
+RUN wget https://civitai.com/api/download/models/42492 -O /app/music-cover-model.ckpt
+
 # install packages from requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
