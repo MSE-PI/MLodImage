@@ -65,9 +65,24 @@ export const store = reactive({
         zip_file: new Blob(),
         images: [],
     },
+    intermediate_results: {
+        whisper: {
+            title: "Text Recognition",
+            value: 'null',
+        },
+        sentiment: {
+            title: "Sentiment Analysis",
+            value: 'null',
+        },
+        music_style: {
+            title: "Music Style Detection",
+            value: 'null',
+        }
+    },
     status: Status.IDLE,
     status_message: StatusMessage.IDLE,
     message_icon: MessageIcon.IDLE,
     message_color: MessageColor.IDLE,
     progress: 0,
+    window_page: "run",
 });
