@@ -20,13 +20,11 @@ from common_code.common.enums import FieldDescriptionType, ExecutionUnitTagName,
 from common_code.common.models import FieldDescription, ExecutionUnitTag
 
 # Imports required by the service's model
-import io
+import os
 import zipfile
-import subprocess
 import torch
 from compel import Compel
-from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler, AutoencoderKL, UNet2DConditionModel, \
-    LMSDiscreteScheduler
+from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import download_from_original_stable_diffusion_ckpt
 from io import BytesIO
 
@@ -52,24 +50,7 @@ def build_pipeline_from_model_id(model_id):
     pipe = pipe.to("cuda")
     return pipe, compel
 
-
-def runcmd(cmd, verbose=False, *args, **kwargs):
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        shell=True
-    )
-    std_out, std_err = process.communicate()
-    if verbose:
-        print(std_out.strip(), std_err)
-    pass
-
-
-def build_model_from_ckpt(ckpt_download_url, model_id):
-    ckpt_path = f"{model_id}-model.ckpt"
-    runcmd(f"wget {ckpt_download_url} -O {ckpt_path}", verbose=True)
+def build_model_from_ckpt(ckpt_path, model_id):
     pipe = download_from_original_stable_diffusion_ckpt(
         checkpoint_path=ckpt_path,
         original_config_file="./v1-inference.yaml"
@@ -99,8 +80,8 @@ def prompt_builder(lyrics_infos, music_style):
 # Build model for custom ckpt
 print("Building custom model...")
 model_id = "music-cover"
-ckpt_download_url = "https://civitai.com/api/download/models/42492"
-build_model_from_ckpt(ckpt_download_url, model_id)
+cpkt_path = "./music-cover-model.ckpt"
+build_model_from_ckpt(cpkt_path, model_id)
 model_ids.append(f"./{model_id}")
 
 # Build the pipeline and compel for each model
