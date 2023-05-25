@@ -1,9 +1,6 @@
 import asyncio
 import json
-import os
-import tempfile
 import time
-import zipfile
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, StreamingResponse, FileResponse
@@ -17,15 +14,21 @@ from common_code.storage.service import StorageService
 from common_code.tasks.controller import router as tasks_router
 from common_code.tasks.service import TasksService
 from common_code.tasks.models import TaskData
-from common_code.service.models import Service, FieldDescription
-from common_code.service.enums import ServiceStatus, FieldDescriptionType
+from common_code.service.models import Service
+from common_code.service.enums import ServiceStatus
+from common_code.common.enums import FieldDescriptionType, ExecutionUnitTagName, ExecutionUnitTagAcronym
+from common_code.common.models import FieldDescription, ExecutionUnitTag
 
 # Imports required by the service's model
+import io
+import zipfile
 import subprocess
 import torch
 from compel import Compel
-from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler, AutoencoderKL, UNet2DConditionModel, LMSDiscreteScheduler
+from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler, AutoencoderKL, UNet2DConditionModel, \
+    LMSDiscreteScheduler
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import download_from_original_stable_diffusion_ckpt
+from io import BytesIO
 
 # Disable warnings
 # import warnings
@@ -38,7 +41,9 @@ guidance_scale = 5
 nb_steps = 50
 nb_images_per_model = 1
 
-negative_prompts = "font++, typo++, signature, text++, watermark++, cropped, disfigured, duplicate, error, jpeg artifacts, low quality, lowres, mutated hands, out of frame, worst quality"
+negative_prompts = "font++, typo++, signature, text++, watermark++, cropped, disfigured, duplicate, error, " \
+                   "jpeg artifacts, low quality, lowres, mutated hands, out of frame, worst quality"
+
 
 def build_pipeline_from_model_id(model_id):
     s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
@@ -47,18 +52,20 @@ def build_pipeline_from_model_id(model_id):
     pipe = pipe.to("cuda")
     return pipe, compel
 
-def runcmd(cmd, verbose = False, *args, **kwargs):
+
+def runcmd(cmd, verbose=False, *args, **kwargs):
     process = subprocess.Popen(
         cmd,
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE,
-        text = True,
-        shell = True
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        shell=True
     )
     std_out, std_err = process.communicate()
     if verbose:
         print(std_out.strip(), std_err)
     pass
+
 
 def build_model_from_ckpt(ckpt_download_url, model_id):
     ckpt_path = f"{model_id}-model.ckpt"
@@ -69,6 +76,7 @@ def build_model_from_ckpt(ckpt_download_url, model_id):
     )
     pipe.to(torch_dtype=torch.float16)
     pipe.save_pretrained(model_id, safe_serialization=True)
+
 
 def prompt_builder(lyrics_infos, music_style):
     print("Building prompt...")
@@ -87,6 +95,7 @@ def prompt_builder(lyrics_infos, music_style):
             prompt += f', {word}'
     return prompt
 
+
 # Build model for custom ckpt
 print("Building custom model...")
 model_id = "music-cover"
@@ -104,6 +113,7 @@ for model_id in model_ids:
     compels.append(compel)
 
 loaded = True
+
 
 class MyService(Service):
     """
@@ -130,7 +140,13 @@ class MyService(Service):
                 FieldDescription(name="image2", type=[FieldDescriptionType.IMAGE_PNG]),
                 FieldDescription(name="image3", type=[FieldDescriptionType.IMAGE_PNG]),
                 FieldDescription(name="metadata", type=[FieldDescriptionType.APPLICATION_JSON]),
-            ]
+            ],
+            tags=[
+                ExecutionUnitTag(
+                    name=ExecutionUnitTagName.IMAGE_PROCESSING,
+                    acronym=ExecutionUnitTagAcronym.IMAGE_PROCESSING
+                ),
+            ],
         )
 
     def process(self, data):
@@ -160,13 +176,12 @@ class MyService(Service):
 
             print("Image generation...")
             images = pipe(prompt_embeds=prompt_embeds,
-                        num_inference_steps=nb_steps,
-                        guidance_scale=guidance_scale,
-                        negative_prompt_embeds=negative_prompts_embeds,
-                        ).images
+                          num_inference_steps=nb_steps,
+                          guidance_scale=guidance_scale,
+                          negative_prompt_embeds=negative_prompts_embeds,
+                          ).images
             all_cover_images += images
 
-        
         images_bytes = []
         for image in all_cover_images:
             image_bytes = BytesIO()
@@ -194,6 +209,7 @@ class MyService(Service):
                 type=FieldDescriptionType.APPLICATION_JSON,
             ),
         }
+
 
 api_summary = """
 This service generates art from lyrics and music style.
@@ -233,12 +249,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Redirect to docs
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse("/docs", status_code=301)
 
+
 service_service: ServiceService | None = None
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -262,39 +281,45 @@ async def startup_event():
     tasks_service.start()
 
     async def announce():
-        # TODO: enhance this to allow multiple engines to be used
-        announced = False
-
         retries = settings.engine_announce_retries
-        while not announced and retries > 0:
-            announced = await service_service.announce_service(my_service)
-            retries -= 1
-            if not announced:
-                time.sleep(settings.engine_announce_retry_delay)
-                if retries == 0:
-                    logger.warning(f"Aborting service announcement after {settings.engine_announce_retries} retries")
+        for engine_url in settings.engine_urls:
+            announced = False
+            while not announced and retries > 0:
+                announced = await service_service.announce_service(my_service, engine_url)
+                retries -= 1
+                if not announced:
+                    time.sleep(settings.engine_announce_retry_delay)
+                    if retries == 0:
+                        logger.warning(f"Aborting service announcement after "
+                                       f"{settings.engine_announce_retries} retries")
 
     # Announce the service to its engine
     asyncio.ensure_future(announce())
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     # Global variable
     global service_service
     my_service = MyService()
-    await service_service.graceful_shutdown(my_service)
+    for engine_url in settings.engine_urls:
+        await service_service.graceful_shutdown(my_service, engine_url)
+
 
 class LyricsAnalysis(BaseModel):
     language: str
     sentiments: dict[str, float]
     top_words: list[str]
 
+
 class MusicStyle(BaseModel):
     style: str
+
 
 class Data(BaseModel):
     lyrics_analysis: LyricsAnalysis
     music_style: MusicStyle
+
 
 @app.post("/process", tags=['Process'])
 async def handle_process(data: Data):
@@ -307,9 +332,9 @@ async def handle_process(data: Data):
     print("Calling art generation service")
     result = MyService().process(
         {
-            "lyrics_analysis": 
-                TaskData(data=lyrics_analysis, type=FieldDescriptionType.APPLICATION_JSON), 
-            "music_style": 
+            "lyrics_analysis":
+                TaskData(data=lyrics_analysis, type=FieldDescriptionType.APPLICATION_JSON),
+            "music_style":
                 TaskData(data=music_style, type=FieldDescriptionType.APPLICATION_JSON)
         })
 
@@ -347,7 +372,9 @@ async def handle_process(data: Data):
     print("Archive", type(archive.getvalue()))
     print("Archive path", archive_path)
 
-    return FileResponse(archive_path, media_type="application/zip", filename="images.zip", headers=result["metadata"].data)
+    return FileResponse(archive_path, media_type="application/zip", filename="images.zip",
+                        headers=result["metadata"].data)
+
 
 @app.post("/test", tags=['Test'])
 async def test(prompt: str, negative_prompts: str):
@@ -361,11 +388,11 @@ async def test(prompt: str, negative_prompts: str):
 
     print("Image generation...")
     images = p(prompt_embeds=prompt_embeds,
-                num_inference_steps=nb_steps,
-                guidance_scale=guidance_scale,
-                negative_prompt_embeds=negative_prompts_embeds,
-                ).images
-    
+               num_inference_steps=nb_steps,
+               guidance_scale=guidance_scale,
+               negative_prompt_embeds=negative_prompts_embeds,
+               ).images
+
     print("Image processing...")
     result = BytesIO()
     images[0].save(result, format="PNG")
