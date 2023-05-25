@@ -470,7 +470,6 @@ const downloadAll = () => {
                                     <v-row v-else>
                                         <v-col
                                             cols="12"
-                                            v-if="store.status != Status.RESULT_READY && store.status != Status.FAILED"
                                         >
                                             <v-btn
                                                 elevation="2"
@@ -660,8 +659,9 @@ const downloadAll = () => {
     white-space: pre-wrap;
     word-wrap: break-word;
     max-width: 100%;
-
-    @media (max-width: 600px) {
+}
+@media (max-width: 600px) {
+    .custom-expansion-panel {
         max-width: 326px;
     }
 }
