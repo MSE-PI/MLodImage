@@ -1,0 +1,78 @@
+# This is a workflow to deploy all services to k8s cluster
+name: train-report-workflow
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on pull request events
+  pull_request:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "report"
+  report:
+    permissions: write-all
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Setup DVC
+        uses: iterative/setup-dvc@v1
+        with:
+          version: '2.37.0'
+      - name: Setup MINIO
+        env: 
+          MINIO_USR: ${{ secrets.MINIO_USR }}
+          MINIO_PWD: ${{ secrets.MINIO_PWD }}
+        run: |
+          envsubst < .dvc/config > .dvc/config.local
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+      - name: Setup CML
+        uses: iterative/setup-cml@v1
+        with:
+          version: '0.18.17'
+      - name: Create CML report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch all other Git branches
+          git fetch --depth=1 origin main:main
+
+          # Compare parameters to main branch
+          echo "# Params workflow vs. main" >> report.md
+          echo >> report.md
+          dvc params diff main --show-md >> report.md
+          echo >> report.md
+
+          # Compare metrics to main branch
+          echo "# Metrics workflow vs. main" >> report.md
+          echo >> report.md
+          dvc metrics diff main --show-md >> report.md
+          echo >> report.md
+
+          # Create plots
+          echo "# Plots" >> report.md
+          echo >> report.md
+
+          echo "## Confusion matrix" >> report.md
+          echo >> report.md
+          dvc plots diff \
+            --target dvc_logs/plots/sklearn/cm.json \
+            --template confusion \
+            -x actual \
+            -y predicted \
+            --show-vega main > vega.json
+          vl2png vega.json > confusion_matrix.png
+          echo '![](./confusion_matrix.png "Confusion Matrix")' >> report.md
+          echo >> report.md
+
+          # Publish the CML report
+          cml comment update --target=pr --publish report.md

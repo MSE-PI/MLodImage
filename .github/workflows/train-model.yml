@@ -39,17 +39,13 @@ jobs:
           TRAIN_BRANCH: ${{ vars.TRAIN_BRANCH }}
           GIT_USER: ${{ secrets.REGISTRY_USER }}
           GIT_PASSWORD: ${{ secrets.REGISTRY_TOKEN }}
-
+          WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
         run: |
           envsubst < code/k8s/cred-secret.yml | kubectl apply -n $NAMESPACE -f -
 
       - name: Setup github container registry credentials in k8s
         run: |
           kubectl -n ${{ vars.SERVICE_NAMESPACE }} create secret docker-registry github-cred --docker-server=ghcr.io --docker-username=${{ secrets.REGISTRY_USER }} --docker-password=${{ secrets.REGISTRY_TOKEN }} -o yaml --save-config --dry-run=client | kubectl apply -f -
-
-      - name: Install DVC requirements
-        run: |
-          pip install -r requirements.txt
 
       - name: Run python script to check for model/data changes and save exit code to output
         id: model-check
@@ -75,15 +71,22 @@ jobs:
         run: |
            kubectl delete jobs -n $NAMESPACE --field-selector status.successful=1   
 
+      # - name: Create Pull Request
+      #   uses: vsoch/pull-request-action@master
+      #   if: ${{ steps.model-check.outputs.return-code == 1 }}
+      #   with:
+      #     commit-message: "Update model"
+      #     title: "Apply model changes"
+      #     body: "This PR was automatically created by the train-model-workflow"
+      #     branch: ${{ vars.TRAIN_BRANCH }}
+      #     delete-branch: false
+      #     base: "main"
+      #     reviewers: "aptrc, hofmannflorian, bigthib0"
+      #     assignees: "ben-jy"
+
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
         if: ${{ steps.model-check.outputs.return-code == 1 }}
-        with:
-          commit-message: "Update model"
-          title: "Apply model changes"
-          body: "This PR was automatically created by the train-model-workflow"
-          branch: ${{ vars.TRAIN_BRANCH }}
-          delete-branch: false
-          base: "main"
-          reviewers: "aptrc, hofmannflorian, bigthib0"
-          assignees: "ben-jy"
+        run: |
+          gh pr create -B main -H ${{ vars.TRAIN_BRANCH }} --title 'Merge ${{ vars.TRAIN_BRANCH }} into main' --body 'This PR was automatically created by the train-model-workflow' -r aptrc -r hofmannflorian -r bigthib0 -a ben-jy
+        env:
+          GH_TOKEN: ${{ secrets.PR_TOKEN }}

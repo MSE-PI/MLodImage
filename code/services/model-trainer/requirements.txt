@@ -1,0 +1,10 @@
+dvc[s3]==2.52.0
+dvclive==2.9.0
+numpy==1.24.3
+pandas==2.0.1
+pytorch_lightning==2.0.2
+PyYAML==6.0
+torch==2.0.1
+torchaudio==2.0.2
+torchmetrics==0.11.4
+tqdm==4.65.0
