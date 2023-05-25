@@ -4,13 +4,12 @@ import { get, getResults, postFile, postURL } from './utils/api';
 import FileUpload from '@/components/FileUpload.vue';
 import JSZip from 'jszip';
 
-const ORCHESTRATOR_URL = 'localhost:8282';
-const expansionPanelMaxWidth = window.innerWidth < 600 ? 300 : '100%';
+const ORCHESTRATOR_URL = 'orchestrator-mlodimage.kube.isc.heia-fr.ch';
 let ws: WebSocket;
 
 const initWebSocket = () => {
     // on localhost, use ws:// instead of wss://
-    ws = new WebSocket(`ws://${ORCHESTRATOR_URL}/ws/${store.execution_id}`);
+    ws = new WebSocket(`wss://${ORCHESTRATOR_URL}/ws/${store.execution_id}`);
 
     ws.onopen = () => {
         console.log(`WebSocket Client Connected with execution_id ${store.execution_id}`);
@@ -181,7 +180,7 @@ const changeMessageColor = (status: Status) => {
 };
 
 const launchPipeline = async () => {
-    const result = await get(`http://${ORCHESTRATOR_URL}/run/${store.execution_id}`);
+    const result = await get(`https://${ORCHESTRATOR_URL}/run/${store.execution_id}`);
     if (!result) {
         setStatus(Status.FAILED);
         store.disabled = false;
@@ -196,9 +195,9 @@ const handleClick = async () => {
     store.disabled = true;
     let result;
     if (store.file.name.length > 0) {
-        result = await postFile(`http://${ORCHESTRATOR_URL}/create`, store.file!);
+        result = await postFile(`https://${ORCHESTRATOR_URL}/create`, store.file!);
     } else {
-        result = await postURL(`http://${ORCHESTRATOR_URL}/create`, store.url);
+        result = await postURL(`https://${ORCHESTRATOR_URL}/create`, store.url);
     }
     if (result) {
         store.execution_id = result.id;
@@ -210,7 +209,7 @@ const handleClick = async () => {
 };
 
 const getResult = async () => {
-    const result = await getResults(`http://${ORCHESTRATOR_URL}/result/${store.execution_id}`);
+    const result = await getResults(`https://${ORCHESTRATOR_URL}/result/${store.execution_id}`);
     if (result) {
         store.result.zip_file = result as Blob;
         const zip = new JSZip();
