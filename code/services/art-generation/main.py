@@ -129,6 +129,7 @@ class MyService(Service):
                 FieldDescription(name="image1", type=[FieldDescriptionType.IMAGE_PNG]),
                 FieldDescription(name="image2", type=[FieldDescriptionType.IMAGE_PNG]),
                 FieldDescription(name="image3", type=[FieldDescriptionType.IMAGE_PNG]),
+                FieldDescription(name="metadata", type=[FieldDescriptionType.APPLICATION_JSON]),
             ]
         )
 
@@ -184,7 +185,14 @@ class MyService(Service):
             "image3": TaskData(
                 data=images_bytes[2],
                 type=FieldDescriptionType.IMAGE_PNG,
-            )
+            ),
+            "metadata": TaskData(
+                data=json.dumps({
+                    "prompt": prompt,
+                    "negative_prompts": negative_prompts,
+                }),
+                type=FieldDescriptionType.APPLICATION_JSON,
+            ),
         }
 
 api_summary = """
@@ -305,8 +313,6 @@ async def handle_process(data: Data):
                 TaskData(data=music_style, type=FieldDescriptionType.APPLICATION_JSON)
         })
 
-    print("Result:", type(result))
-
     images = []
     images.append(result["image1"].data)
     images.append(result["image2"].data)
@@ -341,7 +347,7 @@ async def handle_process(data: Data):
     print("Archive", type(archive.getvalue()))
     print("Archive path", archive_path)
 
-    return FileResponse(archive_path, media_type="application/zip", filename="images.zip")
+    return FileResponse(archive_path, media_type="application/zip", filename="images.zip", headers=result["metadata"].data)
 
 @app.post("/test", tags=['Test'])
 async def test(prompt: str, negative_prompts: str):
