@@ -165,7 +165,7 @@ class MyService(Service):
         text = data["text"].data
         # Convert bytes to string
         text = text.decode("utf-8")
-
+        # Get the language and sentiments
         language, sentiments = get_metadata(text)
         top_words = get_top_n(get_text_tf_idf_score(text), 10)
 

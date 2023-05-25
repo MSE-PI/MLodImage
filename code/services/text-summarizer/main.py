@@ -66,6 +66,7 @@ class MyService(Service):
 
         # Run the model
         result = classifier(text, max_length=100, min_length=5, do_sample=False)
+        
         # Convert the result to bytes
         file_bytes = result[0]["summary_text"].encode("utf-8")
 
