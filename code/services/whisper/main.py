@@ -67,7 +67,7 @@ class MyService(Service):
             tags=[
                 ExecutionUnitTag(
                     name=ExecutionUnitTagName.SPEECH_RECOGNITION,
-                    acronym=ExecutionUnitTagAcronym.SPEECH_RECOGNITIONm
+                    acronym=ExecutionUnitTagAcronym.SPEECH_RECOGNITION
                 ),
             ],
         )

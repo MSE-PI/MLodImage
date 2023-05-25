@@ -163,9 +163,9 @@ class MyService(Service):
     def process(self, data):
         # Get the text to analyze from storage
         text = data["text"].data
-        # bytes to string
+        # Convert bytes to string
         text = text.decode("utf-8")
-
+        # Get the language and sentiments
         language, sentiments = get_metadata(text)
         top_words = get_top_n(get_text_tf_idf_score(text), 10)
 
