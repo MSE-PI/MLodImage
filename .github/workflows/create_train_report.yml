@@ -65,7 +65,7 @@ jobs:
           echo "## Confusion matrix" >> report.md
           echo >> report.md
           dvc plots diff \
-            --target evaluation/plots/sklearn/cm.json \
+            --target dvc_logs/plots/sklearn/cm.json \
             --template confusion \
             -x actual \
             -y predicted \
