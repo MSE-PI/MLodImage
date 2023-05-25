@@ -63,7 +63,13 @@ class MyService(Service):
             ],
             data_out_fields=[
                 FieldDescription(name="result", type=[FieldDescriptionType.APPLICATION_JSON]),
-            ]
+            ],
+            tags=[
+                ExecutionUnitTag(
+                    name=ExecutionUnitTagName.SPEECH_RECOGNITION,
+                    acronym=ExecutionUnitTagAcronym.SPEECH_RECOGNITIONm
+                ),
+            ],
         )
 
         # load the model :
