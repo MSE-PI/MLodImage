@@ -296,7 +296,7 @@ async def handle_process(data: Data):
     lyrics_analysis = json.dumps(lyrics_analysis.dict())
     music_style = json.dumps(music_style.dict())
 
-    print("Calling service")
+    print("Calling art generation service")
     result = MyService().process(
         {
             "lyrics_analysis": 
