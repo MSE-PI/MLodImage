@@ -76,25 +76,29 @@ def prompt_builder(lyrics_infos, music_style):
             prompt += f', {word}'
     return prompt
 
+def initialize_service():
+    """
+    Initialize the service
+    """
+    global loaded, pipes, compels
 
-# Build model for custom ckpt
-print("Building custom model...")
-model_id = "music-cover"
-cpkt_path = "./music-cover-model.ckpt"
-build_model_from_ckpt(cpkt_path, model_id)
-model_ids.append(f"./{model_id}")
+    # Build model for custom ckpt
+    print("Building custom model...")
+    model_id = "music-cover"
+    cpkt_path = "./music-cover-model.ckpt"
+    build_model_from_ckpt(cpkt_path, model_id)
+    model_ids.append(f"./{model_id}")
 
-# Build the pipeline and compel for each model
-print("Building pipelines and compels...")
-pipes = []
-compels = []
-for model_id in model_ids:
-    pipe, compel = build_pipeline_from_model_id(model_id)
-    pipes.append(pipe)
-    compels.append(compel)
+    # Build the pipeline and compel for each model
+    print("Building pipelines and compels...")
+    pipes = []
+    compels = []
+    for model_id in model_ids:
+        pipe, compel = build_pipeline_from_model_id(model_id)
+        pipes.append(pipe)
+        compels.append(compel)
 
-loaded = True
-
+    loaded = True
 
 class MyService(Service):
     """
@@ -230,15 +234,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # Redirect to docs
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse("/docs", status_code=301)
 
-
 service_service: ServiceService | None = None
-
 
 @app.on_event("startup")
 async def startup_event():
@@ -248,6 +249,9 @@ async def startup_event():
 
     # Global variable
     global service_service
+
+    # Initialize the service
+    initialize_service()
 
     logger = get_logger(settings)
     http_client = HttpClient()
@@ -354,7 +358,7 @@ async def handle_process(data: Data):
     print("Archive path", archive_path)
 
     return FileResponse(archive_path, media_type="application/zip", filename="images.zip",
-                        headers=result["metadata"].data)
+                        headers=json.loads(result["metadata"].data))
 
 
 @app.post("/test", tags=['Test'])
