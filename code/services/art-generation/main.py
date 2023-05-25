@@ -362,7 +362,7 @@ async def handle_process(data: Data):
 
 
 @app.post("/test", tags=['Test'])
-async def test(prompt: str, negative_prompts: str):
+async def test(model_id: str, prompt: str, negative_prompts: str, nb_steps: int, guidance_scale: float):
     s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
     p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s).to("cuda")
     c = Compel(tokenizer=p.tokenizer, text_encoder=p.text_encoder)
