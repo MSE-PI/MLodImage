@@ -1,7 +1,7 @@
 schema: '2.0'
 stages:
   train:
-    cmd: python src/train.py
+    cmd: python3 src/train.py
     deps:
     - path: data/FMA
       md5: 516070cc4eac5de0c0527e787c4e374c.dir
@@ -13,25 +13,24 @@ stages:
     params:
       params.yaml:
         train:
-          batch_size: 32
-          max_epochs: 2
+          batch_size: 16
+          max_epochs: 1
           val_split: 0.2
-          nb_workers: 10
+          nb_workers: 0
     outs:
     - path: model.ckpt
-      md5: 27a3c7a60d816bb8bce69e3d1a82184d
-      size: 440700575
-      isexec: true
+      md5: 3857d64c4fa9cc6c6a28b1bd4825ae75
+      size: 440699551
   evaluate:
-    cmd: python src/evaluate.py
+    cmd: python3 src/evaluate.py
     deps:
     - path: data/GTZAN
       md5: 1a38fd66b26a08c25dc79410dea35709.dir
       size: 945425411
       nfiles: 715
     - path: model.ckpt
-      md5: 27a3c7a60d816bb8bce69e3d1a82184d
-      size: 440700575
+      md5: 3857d64c4fa9cc6c6a28b1bd4825ae75
+      size: 440699551
     - path: src/evaluate.py
       md5: 4850777dc740933b85f261cc540982c0
       size: 4138
@@ -39,21 +38,18 @@ stages:
       params.yaml:
         evaluate:
           batch_size: 1
-          nb_workers: 10
+          nb_workers: 0
     outs:
     - path: dvc_logs/metrics.json
-      md5: aed10a63853d1517944c4b5b7b79f7d6
+      md5: fc7ce9a75739d11c2a5b56a5315be864
       size: 38
-      isexec: true
     - path: dvc_logs/plots/metrics
-      md5: 01c461ac30a8186d1a173fd2d38858b8.dir
+      md5: dd6405f5b83797430f538c3f6e0413d4.dir
       size: 35
       nfiles: 1
     - path: dvc_logs/plots/sklearn/cm.json
-      md5: f1688e26aca198871178d2f05d30a881
-      size: 84759
-      isexec: true
+      md5: cffe088060668127cd1bf32c93f58a48
+      size: 85356
     - path: dvc_logs/report.html
-      md5: 96ffbd39f22cf13eaa90ef755466ebd3
-      size: 53518
-      isexec: true
+      md5: 6849ff16294d4f0496aac15a3c96db65
+      size: 53503
