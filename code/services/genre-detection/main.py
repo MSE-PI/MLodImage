@@ -363,7 +363,7 @@ async def startup_event():
                                        f"{settings.engine_announce_retries} retries")
 
     # Announce the service to its engine
-    # asyncio.ensure_future(announce())
+    asyncio.ensure_future(announce())
 
 
 @app.on_event("shutdown")

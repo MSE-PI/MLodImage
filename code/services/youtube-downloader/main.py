@@ -81,7 +81,7 @@ class MyService(Service):
     def process(self, data):
         # Get the text to analyze from storage
         text = data["url"].data
-        # bytes to string
+        # Convert bytes to string
         text = text.decode("utf-8")
 
         # Check if the text is a URL and domain name is youtube.com
