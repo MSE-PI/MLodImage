@@ -58,7 +58,7 @@ class MyService(Service):
     def process(self, data):
         # Get the text to analyze from storage
         text = data["text"].data
-        # bytes to string
+        # Convert bytes to string
         text = text.decode("utf-8")
 
         # Limit the text to 142 words
