@@ -14,12 +14,12 @@ stages:
       params.yaml:
         train:
           batch_size: 16
-          max_epochs: 2
+          max_epochs: 1
           val_split: 0.2
           nb_workers: 0
     outs:
     - path: model.ckpt
-      md5: bb19de10428f2de10d5c8ecbeee8a07c
+      md5: 43eaf45d6a2b6121aa66a52f55449476
       size: 440699551
   evaluate:
     cmd: python3 src/evaluate.py
@@ -29,7 +29,7 @@ stages:
       size: 945425411
       nfiles: 715
     - path: model.ckpt
-      md5: bb19de10428f2de10d5c8ecbeee8a07c
+      md5: 43eaf45d6a2b6121aa66a52f55449476
       size: 440699551
     - path: src/evaluate.py
       md5: 4850777dc740933b85f261cc540982c0
@@ -41,15 +41,15 @@ stages:
           nb_workers: 0
     outs:
     - path: dvc_logs/metrics.json
-      md5: dba4b230c7c9fee2d9cf18d50a901d53
+      md5: 1afbb682273b847b7cdfc255b352baec
       size: 39
     - path: dvc_logs/plots/metrics
-      md5: 210a0e399eccc785a8338a8809b5c461.dir
+      md5: 1a9e16f7512a4ce76da91a9076d59239.dir
       size: 36
       nfiles: 1
     - path: dvc_logs/plots/sklearn/cm.json
-      md5: f12371e26e5ec4ed44b3a650547e8bea
-      size: 86260
+      md5: 7a5cfa5b82b85e9f19fde2f182a049b4
+      size: 85527
     - path: dvc_logs/report.html
-      md5: e198684368359dee677636031930546d
-      size: 54408
+      md5: 5159e33fe7099afb31e09337e445d8ff
+      size: 53675
