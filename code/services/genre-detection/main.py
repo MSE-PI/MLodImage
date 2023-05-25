@@ -35,7 +35,7 @@ import torchaudio
 import torch
 import os
 from minio import Minio
-import datetime
+from datetime import datetime
 from pydub import AudioSegment
 
 # audio configuration TODO: move to config file
@@ -48,8 +48,8 @@ N_CHANNELS = 1
 # minio configuration
 MINIO_HOSTNAME = 'minio1.isc.heia-fr.ch:9018'
 MINIO_BUCKET_NAME = 'pi-aimarket-mlodimage'
-MINIO_ACCESS_KEY = os.environ.get('MINIO_USR')
-MINIO_SECRET_KEY = os.environ.get('MINIO_PWD')
+MINIO_ACCESS_KEY = 'fhofmann'
+MINIO_SECRET_KEY = 'meik4aLaisei'
 MINIO_CLIENT = Minio(MINIO_HOSTNAME, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=True)
 
 # download the model from Minio and save it locally
@@ -218,21 +218,17 @@ class MyService(Service):
     def process(self, data):
         # load and preprocess the audio file
         audio_file = data['audio'].data
-        audio_name = f"temp{datetime.now().strftime('%Y%m%d%H%M%S')}"
         try:
             with NamedTemporaryFile(dir="./audio/", delete=True) as f:
                 f.write(audio_file)
-                AudioSegment.from_file(f.name).export(f"./audio/{audio_name}", format="wav")
-                audio = AudioUtil.open(f"./audio/{audio_name}")
+                AudioSegment.from_file(f.name).export(f.name, format="wav")
+                audio = AudioUtil.open(f.name)
                 audio = AudioUtil.rechannel(audio, N_CHANNELS)
                 audio = AudioUtil.resample(audio, SAMPLE_RATE)
                 audio = AudioUtil.pad_truncate(audio, AUDIO_DURATION)
                 mel_spectrogram = AudioUtil.mel_spectrogram(audio)
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-        finally:
-            # remove the temporary file
-            os.remove(f"./audio/{audio_name}")
 
         # inference
         inputs = mel_spectrogram.unsqueeze(0)
@@ -367,7 +363,7 @@ async def startup_event():
                                        f"{settings.engine_announce_retries} retries")
 
     # Announce the service to its engine
-    asyncio.ensure_future(announce())
+    # asyncio.ensure_future(announce())
 
 
 @app.on_event("shutdown")
