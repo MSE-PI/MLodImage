@@ -190,6 +190,7 @@ class MyService(Service):
                 data=json.dumps({
                     "prompt": prompt,
                     "negative_prompts": negative_prompts,
+                    "model_ids": model_ids,
                 }),
                 type=FieldDescriptionType.APPLICATION_JSON,
             ),
