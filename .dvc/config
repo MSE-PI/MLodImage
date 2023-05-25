@@ -2,6 +2,6 @@
     remote = minio
 ['remote "minio"']
     url = s3://pi-aimarket-mlodimage/models_data
-    access_key_id = MyAccessKey
-    secret_access_key = MySecretAccessKey
+    access_key_id = ${MINIO_USR}
+    secret_access_key = ${MINIO_PWD}
     endpointurl = https://minio1.isc.heia-fr.ch:9018
