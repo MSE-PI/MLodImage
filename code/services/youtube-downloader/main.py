@@ -1,10 +1,10 @@
 import asyncio
 import time
-from fastapi import FastAPI, Form
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, FileResponse, Response
+from fastapi.responses import RedirectResponse, FileResponse
 from common_code.config import get_settings
-from pydantic import Field, BaseModel
+from pydantic import Field
 from common_code.http_client import HttpClient
 from common_code.logger.logger import get_logger
 from common_code.service.controller import router as service_router
@@ -13,8 +13,10 @@ from common_code.storage.service import StorageService
 from common_code.tasks.controller import router as tasks_router
 from common_code.tasks.service import TasksService
 from common_code.tasks.models import TaskData
-from common_code.service.models import Service, FieldDescription
-from common_code.service.enums import ServiceStatus, FieldDescriptionType
+from common_code.service.models import Service
+from common_code.service.enums import ServiceStatus
+from common_code.common.enums import FieldDescriptionType, ExecutionUnitTagName, ExecutionUnitTagAcronym
+from common_code.common.models import FieldDescription, ExecutionUnitTag
 
 # Model specific imports
 import re
@@ -48,7 +50,7 @@ settings = get_settings()
 
 class MyService(Service):
     """
-    Sentiment analysis service model
+    YouTube downloader service
     """
 
     # Any additional fields must be excluded for Pydantic to work
@@ -65,9 +67,14 @@ class MyService(Service):
             data_in_fields=[
                 FieldDescription(name="url", type=[FieldDescriptionType.TEXT_PLAIN]),
             ],
-            # !!! temporary to text because audio is not supported yet
             data_out_fields=[
-                FieldDescription(name="result", type=[FieldDescriptionType.TEXT_PLAIN]),
+                FieldDescription(name="result", type=[FieldDescriptionType.AUDIO_MP3]),
+            ],
+            tags=[
+                ExecutionUnitTag(
+                    name=ExecutionUnitTagName.DATA_PREPROCESSING,
+                    acronym=ExecutionUnitTagAcronym.DATA_PREPROCESSING
+                ),
             ]
         )
 
@@ -77,7 +84,7 @@ class MyService(Service):
         # bytes to string
         text = text.decode("utf-8")
 
-        # Check if the text is an URL and domain name is youtube.com
+        # Check if the text is a URL and domain name is youtube.com
         if not re.match(
                 "^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$",
                 text
@@ -91,7 +98,7 @@ class MyService(Service):
         return {
             "result": TaskData(
                 data=file_bytes,
-                type=FieldDescriptionType.TEXT_PLAIN
+                type=FieldDescriptionType.AUDIO_MP3
             )
         }
 
@@ -153,7 +160,6 @@ def handle_process(url: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-
 @app.on_event("startup")
 async def startup_event():
     # Manual instances because startup events doesn't support Dependency Injection
@@ -177,7 +183,7 @@ async def startup_event():
 
     async def announce():
         retries = settings.engine_announce_retries
-        for engine_url in settings.engine_url:
+        for engine_url in settings.engine_urls:
             announced = False
             while not announced and retries > 0:
                 announced = await service_service.announce_service(my_service, engine_url)
@@ -197,5 +203,5 @@ async def shutdown_event():
     # Global variable
     global service_service
     my_service = MyService()
-    for engine_url in settings.engine_url:
+    for engine_url in settings.engine_urls:
         await service_service.graceful_shutdown(my_service, engine_url)
