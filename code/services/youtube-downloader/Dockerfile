@@ -16,6 +16,9 @@ COPY ./requirements.txt /app/requirements.txt
 # install packages from requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
+# replace cipher.py file in pytube library to fix regex error https://github.com/pytube/pytube/pull/1646
+COPY ./cipher.py /usr/local/lib/python3.10/site-packages/pytube/cipher.py
+
 # copy all the files
 COPY . /app
 
