@@ -13,6 +13,9 @@ WORKDIR /app
 # copy requirements.txt
 COPY ./requirements.txt /app/requirements.txt
 
+# copy v1-inference.yaml
+COPY ./v1-inference.yaml /app/v1-inference.yaml
+
 # install packages from requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 

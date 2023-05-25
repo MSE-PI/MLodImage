@@ -21,36 +21,89 @@ from common_code.service.models import Service, FieldDescription
 from common_code.service.enums import ServiceStatus, FieldDescriptionType
 
 # Imports required by the service's model
-from io import BytesIO
+import subprocess
+import torch
 from compel import Compel
-from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
+from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler, AutoencoderKL, UNet2DConditionModel, LMSDiscreteScheduler
+from diffusers.pipelines.stable_diffusion.convert_from_ckpt import download_from_original_stable_diffusion_ckpt
 
 # Disable warnings
 # import warnings
 # warnings.filterwarnings("ignore")
 
 settings = get_settings()
-model_id = "stabilityai/stable-diffusion-2-base"
+loaded = False
+model_ids = ["stabilityai/stable-diffusion-2-base", "prompthero/openjourney", "./music-cover"]
 guidance_scale = 5
 nb_steps = 50
-nb_images = 3
+nb_images_per_model = 1
 
-scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler).to("cuda")
-compel = Compel(tokenizer=pipe.tokenizer, text_encoder=pipe.text_encoder)
+negative_prompts = "font++, typo++, signature, text++, watermark++, cropped, disfigured, duplicate, error, jpeg artifacts, low quality, lowres, mutated hands, out of frame, worst quality"
 
-negative_prompts = "font, typo, signature, text, watermark, cropped, disfigured, duplicate, error, jpeg artifacts, low quality, lowres, mutated hands, out of frame, worst quality"
+def build_pipeline_from_model_id(model_id):
+    s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
+    pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s, torch_dtype=torch.float16)
+    compel = Compel(tokenizer=pipe.tokenizer, text_encoder=pipe.text_encoder)
+    pipe = pipe.to("cuda")
+    return pipe, compel
+
+def runcmd(cmd, verbose = False, *args, **kwargs):
+    process = subprocess.Popen(
+        cmd,
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE,
+        text = True,
+        shell = True
+    )
+    std_out, std_err = process.communicate()
+    if verbose:
+        print(std_out.strip(), std_err)
+    pass
+
+def build_model_from_ckpt(ckpt_download_url, model_id):
+    ckpt_path = f"{model_id}-model.ckpt"
+    runcmd(f"wget {ckpt_download_url} -O {ckpt_path}", verbose=True)
+    pipe = download_from_original_stable_diffusion_ckpt(
+        checkpoint_path=ckpt_path,
+        original_config_file="./v1-inference.yaml"
+    )
+    pipe.to(torch_dtype=torch.float16)
+    pipe.save_pretrained(model_id, safe_serialization=True)
 
 def prompt_builder(lyrics_infos, music_style):
     print("Building prompt...")
     print(music_style["style"])
     print(lyrics_infos["top_words"])
 
-    prompt = f'{music_style["style"]} album cover with lyrics about'
-    for word in lyrics_infos["top_words"]:
-        prompt += f' {word}'
+    prompt = f'An album cover in style of {music_style["style"]} without any text and containing the following themes:'
+    for i, word in enumerate(lyrics_infos["top_words"]):
+        if i == 0:
+            prompt += f' {word}++++++'
+        elif i == 1:
+            prompt += f', {word}++++'
+        elif i == 2:
+            prompt += f', {word}++'
+        else:
+            prompt += f', {word}'
     return prompt
 
+# Build model for custom ckpt
+print("Building custom model...")
+model_id = "music-cover"
+ckpt_download_url = "https://civitai.com/api/download/models/42492"
+build_model_from_ckpt(ckpt_download_url, model_id)
+model_ids.append(f"./{model_id}")
+
+# Build the pipeline and compel for each model
+print("Building pipelines and compels...")
+pipes = []
+compels = []
+for model_id in model_ids:
+    pipe, compel = build_pipeline_from_model_id(model_id)
+    pipes.append(pipe)
+    compels.append(compel)
+
+loaded = True
 
 class MyService(Service):
     """
@@ -91,23 +144,30 @@ class MyService(Service):
 
         prompt = prompt_builder(lyrics_analysis, music_style)
         print(prompt)
-        
-        prompt_multi = [prompt] * nb_images
-        negative_prompts_multi = [negative_prompts] * nb_images
 
-        print("Prompt embedding...")
-        prompt_embeds = compel(prompt_multi)
-        negative_prompts_embeds = compel(negative_prompts_multi)
+        all_cover_images = []
+        for i in range(len(pipes)):
+            pipe = pipes[i]
+            compel = compels[i]
 
-        print("Image generation...")
-        images = pipe(prompt_embeds=prompt_embeds,
-                    num_inference_steps=nb_steps,
-                    guidance_scale=guidance_scale,
-                    negative_prompt_embeds=negative_prompts_embeds,
-                    ).images
+            prompt_multi = [prompt] * nb_images_per_model
+            negative_prompts_multi = [negative_prompts] * nb_images_per_model
+
+            print("Prompt embedding...")
+            prompt_embeds = compel(prompt_multi)
+            negative_prompts_embeds = compel(negative_prompts_multi)
+
+            print("Image generation...")
+            images = pipe(prompt_embeds=prompt_embeds,
+                        num_inference_steps=nb_steps,
+                        guidance_scale=guidance_scale,
+                        negative_prompt_embeds=negative_prompts_embeds,
+                        ).images
+            all_cover_images += images
+
         
         images_bytes = []
-        for image in images:
+        for image in all_cover_images:
             image_bytes = BytesIO()
             image.save(image_bytes, format="PNG")
             images_bytes.append(image_bytes.getvalue())
@@ -277,8 +337,6 @@ async def handle_process(data: Data):
     archive_path = "images.zip"
     with open(archive_path, "wb") as f:
         f.write(archive.getvalue())
-
-
 
     print("Archive", type(archive.getvalue()))
     print("Archive path", archive_path)
