@@ -76,25 +76,29 @@ def prompt_builder(lyrics_infos, music_style):
             prompt += f', {word}'
     return prompt
 
+def initialize_service():
+    """
+    Initialize the service
+    """
+    global loaded, pipes, compels
 
-# Build model for custom ckpt
-print("Building custom model...")
-model_id = "music-cover"
-cpkt_path = "./music-cover-model.ckpt"
-build_model_from_ckpt(cpkt_path, model_id)
-model_ids.append(f"./{model_id}")
+    # Build model for custom ckpt
+    print("Building custom model...")
+    model_id = "music-cover"
+    cpkt_path = "./music-cover-model.ckpt"
+    build_model_from_ckpt(cpkt_path, model_id)
+    model_ids.append(f"./{model_id}")
 
-# Build the pipeline and compel for each model
-print("Building pipelines and compels...")
-pipes = []
-compels = []
-for model_id in model_ids:
-    pipe, compel = build_pipeline_from_model_id(model_id)
-    pipes.append(pipe)
-    compels.append(compel)
+    # Build the pipeline and compel for each model
+    print("Building pipelines and compels...")
+    pipes = []
+    compels = []
+    for model_id in model_ids:
+        pipe, compel = build_pipeline_from_model_id(model_id)
+        pipes.append(pipe)
+        compels.append(compel)
 
-loaded = True
-
+    loaded = True
 
 class MyService(Service):
     """
@@ -230,15 +234,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # Redirect to docs
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse("/docs", status_code=301)
 
-
 service_service: ServiceService | None = None
-
 
 @app.on_event("startup")
 async def startup_event():
@@ -248,6 +249,9 @@ async def startup_event():
 
     # Global variable
     global service_service
+
+    # Initialize the service
+    initialize_service()
 
     logger = get_logger(settings)
     http_client = HttpClient()
@@ -354,21 +358,19 @@ async def handle_process(data: Data):
     print("Archive path", archive_path)
 
     return FileResponse(archive_path, media_type="application/zip", filename="images.zip",
-                        headers=result["metadata"].data)
+                        headers=json.loads(result["metadata"].data))
 
 
 @app.post("/test", tags=['Test'])
-async def test(prompt: str, negative_prompts: str):
-    s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-    p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s).to("cuda")
-    c = Compel(tokenizer=p.tokenizer, text_encoder=p.text_encoder)
+async def test(model_id: str, prompt: str, negative_prompts: str, nb_steps: int, guidance_scale: float):
+    pipe, compel = build_pipeline_from_model_id(model_id)
 
     print("Prompt embedding...")
-    prompt_embeds = c(prompt)
-    negative_prompts_embeds = c(negative_prompts)
+    prompt_embeds = compel(prompt)
+    negative_prompts_embeds = compel(negative_prompts)
 
     print("Image generation...")
-    images = p(prompt_embeds=prompt_embeds,
+    images = pipe(prompt_embeds=prompt_embeds,
                num_inference_steps=nb_steps,
                guidance_scale=guidance_scale,
                negative_prompt_embeds=negative_prompts_embeds,
