@@ -22,34 +22,34 @@ from common_code.storage.service import StorageService
 from common_code.tasks.controller import router as tasks_router
 from common_code.tasks.service import TasksService
 from common_code.tasks.models import TaskData
-from common_code.service.models import Service, FieldDescription
-from common_code.service.enums import ServiceStatus, FieldDescriptionType
+from common_code.service.models import Service
+from common_code.service.enums import ServiceStatus
+from common_code.common.enums import FieldDescriptionType, ExecutionUnitTagName, ExecutionUnitTagAcronym
+from common_code.common.models import FieldDescription, ExecutionUnitTag
 
 # service specific imports
-import uvicorn
 from tempfile import NamedTemporaryFile
 from fastapi import HTTPException, UploadFile, File
 from AudioCNN import AudioCNN
 import torchaudio
 import torch
 import os
-import numpy as np
 from minio import Minio
-import traceback
+from datetime import datetime
 from pydub import AudioSegment
 
 # audio configuration TODO: move to config file
 # support audio : wav, mpeg, m4a, ogg
-AUDIO_SUPPORTED = ["audio/wav", "audio/mpeg", "audio/x-m4a", "audio/ogg"]
-AUDIO_DURATION = 3000  #equals 3 seconds
+AUDIO_SUPPORTED = ["audio/mpeg", "audio/ogg"]
+AUDIO_DURATION = 3000  # equals 3 seconds
 SAMPLE_RATE = 44100
 N_CHANNELS = 1
 
 # minio configuration
 MINIO_HOSTNAME = 'minio1.isc.heia-fr.ch:9018'
 MINIO_BUCKET_NAME = 'pi-aimarket-mlodimage'
-MINIO_ACCESS_KEY = os.environ.get('MINIO_USR')
-MINIO_SECRET_KEY = os.environ.get('MINIO_PWD')
+MINIO_ACCESS_KEY = 'fhofmann'
+MINIO_SECRET_KEY = 'meik4aLaisei'
 MINIO_CLIENT = Minio(MINIO_HOSTNAME, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=True)
 
 # download the model from Minio and save it locally
@@ -63,10 +63,12 @@ CURRENT_PATH = os.getcwd()
 
 settings = get_settings()
 
-class AudioUtil():
+
+class AudioUtil:
     """
     Utility class for audio processing.
     """
+
     @staticmethod
     def open(audio_file):
         """
@@ -75,10 +77,10 @@ class AudioUtil():
         :type audio_file: Union[str, pathlib.Path, FileLike]
         :return: the signal and the sample rate
         """
-        # convert the file to ensure is is compatible with torchaudio
+        # convert the file to ensure is compatible with torchaudio
         signal, sample_rate = torchaudio.load(audio_file)
-        return (signal, sample_rate)
-    
+        return signal, sample_rate
+
     @staticmethod
     def rechannel(audio, new_channel):
         """
@@ -92,17 +94,17 @@ class AudioUtil():
         """
         signal, sample_rate = audio
 
-        if (signal.shape[0] == new_channel):
+        if signal.shape[0] == new_channel:
             # nothing to do as the signal already has the target number of channels
             return audio
-        if (new_channel == 1):
+        if new_channel == 1:
             # convert to mono by selecting only the first channel
             signal = signal[:1, :]
         else:
             # convert to stereo by duplicating the first channel
             signal = torch.cat([signal, signal])
-        return (signal, sample_rate)
-    
+        return signal, sample_rate
+
     @staticmethod
     def resample(audio, new_sample_rate):
         """
@@ -115,13 +117,13 @@ class AudioUtil():
         :rtype: Tuple[torch.Tensor, int]
         """
         signal, sample_rate = audio
-        if (sample_rate == new_sample_rate):
+        if sample_rate == new_sample_rate:
             # nothing to do
             return audio
         resample = torchaudio.transforms.Resample(sample_rate, new_sample_rate)
         signal = resample(signal)
-        return (signal, new_sample_rate)
-    
+        return signal, new_sample_rate
+
     @staticmethod
     def pad_truncate(audio, length):
         """
@@ -134,7 +136,7 @@ class AudioUtil():
         :rtype: Tuple[torch.Tensor, int]
         """
         signal, sample_rate = audio
-        max_length = sample_rate//1000 * length
+        max_length = sample_rate // 1000 * length
 
         if (signal.shape[1] > max_length):
             signal = signal[:, :max_length]
@@ -142,11 +144,11 @@ class AudioUtil():
             padding = max_length - signal.shape[1]
             signal = F.pad(signal, (0, padding))
         return (signal, sample_rate)
-    
+
     @staticmethod
     def mel_spectrogram(audio, n_mels=64, n_fft=1024, hop_length=None):
         """
-        Create the mel spectogram for the given audio signal.
+        Create the mel spectrogram for the given audio signal.
         :param audio: the audio, composed of the signal and the sample rate
         :type audio: Tuple[torch.Tensor, int]
         :param n_mels: the number of mel filterbanks
@@ -155,11 +157,11 @@ class AudioUtil():
         :type n_fft: int
         :param hop_length: the length of hop between STFT windows
         :type hop_length: int
-        :return: the mel spectogram
+        :return: the mel spectrogram
         :rtype: torch.Tensor
         """
         signal, sample_rate = audio
-        
+
         mel_spectrogram = torchaudio.transforms.MelSpectrogram(
             sample_rate,
             n_fft=n_fft,
@@ -171,6 +173,7 @@ class AudioUtil():
         mel_spectrogram = torchaudio.transforms.AmplitudeToDB()(mel_spectrogram)
 
         return mel_spectrogram
+
 
 class MyService(Service):
     """
@@ -185,19 +188,18 @@ class MyService(Service):
     def __init__(self):
         super().__init__(
             name="Musical Genre Detection",
-            slug="muscial_genre_detection",
+            slug="musical-genre-detection",
             url=settings.service_url,
             summary=api_summary,
             description=api_description,
             status=ServiceStatus.AVAILABLE,
             data_in_fields=[
-                FieldDescription(name="text", type=[FieldDescriptionType.TEXT_PLAIN]),
+                FieldDescription(name="audio", type=[FieldDescriptionType.AUDIO_MP3, FieldDescriptionType.AUDIO_OGG]),
             ],
             data_out_fields=[
                 FieldDescription(name="result", type=[FieldDescriptionType.APPLICATION_JSON]),
             ]
         )
-
 
         # load json file containing the mapping between the genre and the index
         with open('id_to_label.json') as f:
@@ -213,16 +215,20 @@ class MyService(Service):
         self.model.eval()
         print("Model loaded successfully, running on device: " + str(self.device))
 
-    def process(self, audio_file: str):
+    def process(self, data):
         # load and preprocess the audio file
-        print("Processing audio file..." + audio_file)
-        audio = AudioUtil.open(audio_file)
-        audio = AudioUtil.rechannel(audio, N_CHANNELS)
-        audio = AudioUtil.resample(audio, SAMPLE_RATE)
-        audio = AudioUtil.pad_truncate(audio, AUDIO_DURATION)
-        mel_spectrogram = AudioUtil.mel_spectrogram(audio)
-
-        print("Audio file processed successfully")
+        audio_file = data['audio'].data
+        try:
+            with NamedTemporaryFile(dir="./audio/", delete=True) as f:
+                f.write(audio_file)
+                AudioSegment.from_file(f.name).export(f.name, format="wav")
+                audio = AudioUtil.open(f.name)
+                audio = AudioUtil.rechannel(audio, N_CHANNELS)
+                audio = AudioUtil.resample(audio, SAMPLE_RATE)
+                audio = AudioUtil.pad_truncate(audio, AUDIO_DURATION)
+                mel_spectrogram = AudioUtil.mel_spectrogram(audio)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
         # inference
         inputs = mel_spectrogram.unsqueeze(0)
@@ -240,11 +246,15 @@ class MyService(Service):
         print(genres_probs)
 
         # return the result
-        json_result =  {"genre_top": genre,
-                        "genres": genres_probs}
-        
-        
-        return json_result
+        json_result = {"genre_top": genre,
+                       "genres": genres_probs}
+
+        return {
+            "result": TaskData(
+                data=json.dumps(json_result),
+                type=FieldDescriptionType.APPLICATION_JSON
+            )
+        }
 
 
 api_summary = """
@@ -283,6 +293,7 @@ app.add_middleware(
 app.include_router(service_router, tags=['Service'])
 app.include_router(tasks_router, tags=['Tasks'])
 
+
 # Redirect to docs
 @app.get("/", include_in_schema=False)
 async def root():
@@ -290,6 +301,7 @@ async def root():
 
 
 service_service: ServiceService | None = None
+
 
 @app.post('/process', tags=['Process'])
 async def handle_process(audio: UploadFile = File(...)):
@@ -302,21 +314,18 @@ async def handle_process(audio: UploadFile = File(...)):
     # Check if audio file is valid
     if audio.content_type not in AUDIO_SUPPORTED:
         raise HTTPException(status_code=400, detail="Invalid audio file given")
-    try:
-        with NamedTemporaryFile(suffix=".wav", dir="./audio/", delete=False) as f:
-            # convert the audio file to wav
-            AudioSegment.from_file(audio.file).export(f.name, format="wav")
-            # Do the speech recognition
-            result = MyService().process(f.name)
-    except Exception as e:
-        # print stack trace
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Error while processing audio file: " + str(e))
-    finally:
-        # Delete the temporary file
-        os.remove(f.name)
-    
-    return result
+    # Get audio file type
+    if audio.content_type == "audio/mpeg":
+        AUDIO_TYPE = FieldDescriptionType.AUDIO_MP3
+    else:
+        AUDIO_TYPE = FieldDescriptionType.AUDIO_OGG
+    # convert audio to bytes
+    audio_bytes = await audio.read()
+    # call service to process audio
+    result = MyService().process({"audio": TaskData(data=audio_bytes, type=AUDIO_TYPE)})
+    # Return the result
+    data = json.loads(result["result"].data)
+    return data
 
 
 @app.on_event("startup")
@@ -326,7 +335,7 @@ async def startup_event():
     # https://github.com/tiangolo/fastapi/issues/425
 
     # Global variable
-    global service_service
+    global service_service, my_service
 
     logger = get_logger(settings)
     http_client = HttpClient()
@@ -341,20 +350,26 @@ async def startup_event():
     tasks_service.start()
 
     async def announce():
-        # TODO: enhance this to allow multiple engines to be used
-        announced = False
-
         retries = settings.engine_announce_retries
-        while not announced and retries > 0:
-            announced = await service_service.announce_service(my_service)
-            retries -= 1
-            if not announced:
-                time.sleep(settings.engine_announce_retry_delay)
-                if retries == 0:
-                    logger.warning(f"Aborting service announcement after {settings.engine_announce_retries} retries")
+        for engine_url in settings.engine_urls:
+            announced = False
+            while not announced and retries > 0:
+                announced = await service_service.announce_service(my_service, engine_url)
+                retries -= 1
+                if not announced:
+                    time.sleep(settings.engine_announce_retry_delay)
+                    if retries == 0:
+                        logger.warning(f"Aborting service announcement after "
+                                       f"{settings.engine_announce_retries} retries")
 
     # Announce the service to its engine
-    asyncio.ensure_future(announce())
+    # asyncio.ensure_future(announce())
 
-if __name__ == '__main__':
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    # Global variable
+    global service_service
+    my_service = MyService()
+    for engine_url in settings.engine_urls:
+        await service_service.graceful_shutdown(my_service, engine_url)
