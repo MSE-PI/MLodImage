@@ -30,7 +30,7 @@ function handleClickDeleteFile() {
     <div style="height: 100%" :class="{'disabled': store.url.length > 0}">
         <div v-if="store.file.name" class="files">
             <div class="file-item p-0">
-                <v-chip color="orange" label class="radius-8" size="x-large" prepend-icon="mdi mdi-file-music-outline">
+                <v-chip color="orange" label class="rounded-lg" size="x-large" prepend-icon="mdi mdi-file-music-outline">
                     <span class="wrap-class">{{ store.file.name }}</span>
                 </v-chip>
                 <v-btn class="delete-file mt-8" elevation="1" size="large" @click="handleClickDeleteFile()" prepend-icon="mdi mdi-delete">
