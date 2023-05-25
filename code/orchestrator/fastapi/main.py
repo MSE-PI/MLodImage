@@ -132,7 +132,7 @@ SERVICE_ROUTE = "/process"
 
 
 async def save_audio(audio: io.BytesIO, file_type: str):
-    # Save the audio file to the audio folder
+    # Save the audio file to the audios folder
     try:
         with NamedTemporaryFile(suffix="." + file_type, dir="./audios/", delete=False) as f:
             f.write(audio.read())
