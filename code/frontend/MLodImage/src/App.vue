@@ -4,12 +4,13 @@ import { get, getResults, postFile, postURL } from './utils/api';
 import FileUpload from '@/components/FileUpload.vue';
 import JSZip from 'jszip';
 
-const ORCHESTRATOR_URL = 'orchestrator-mlodimage.kube.isc.heia-fr.ch';
+const ORCHESTRATOR_URL = 'localhost:8282';
+const expansionPanelMaxWidth = window.innerWidth < 600 ? 300 : '100%';
 let ws: WebSocket;
 
 const initWebSocket = () => {
     // on localhost, use ws:// instead of wss://
-    ws = new WebSocket(`wss://${ORCHESTRATOR_URL}/ws/${store.execution_id}`);
+    ws = new WebSocket(`ws://${ORCHESTRATOR_URL}/ws/${store.execution_id}`);
 
     ws.onopen = () => {
         console.log(`WebSocket Client Connected with execution_id ${store.execution_id}`);
@@ -24,19 +25,18 @@ const initWebSocket = () => {
     };
 
     ws.onmessage = (msg) => {
-        let cleanString = msg.data.replace(/\\/g, "");
-        cleanString = cleanString.replace(/"{/g, "{");
-        cleanString = cleanString.replace(/}"/g, "}");
-        const message = JSON.parse(cleanString);
+        const message = JSON.parse(msg.data);
         setStatus(message.status);
         if (message.status == Status.RESULT_READY) {
             getResult();
         } else if (message.status == Status.FAILED) {
             store.disabled = false;
         } else {
-            console.log(message);
+            store.intermediate_results.whisper.value = message.results.whisper;
+            store.intermediate_results.sentiment.value = message.results.sentiment_analysis;
+            store.intermediate_results.music_style.value = message.results.music_style;
         }
-    }
+    };
 }
 
 const setStatus = (status: any) => {
@@ -52,6 +52,30 @@ const resetStore = () => {
     store.file = new File([], '');
     store.disabled = true;
     store.execution_id = '';
+    store.result = {
+        zip_file: new Blob(),
+        images: [],
+    };
+    store.intermediate_results = {
+        whisper: {
+            title: "Text Recognition",
+            value: 'null',
+        },
+        sentiment: {
+            title: "Sentiment Analysis",
+            value: 'null',
+        },
+        music_style: {
+            title: "Music Style Detection",
+            value: 'null',
+        }
+    };
+    store.status = Status.IDLE;
+    store.status_message = StatusMessage.IDLE;
+    store.message_icon = MessageIcon.IDLE;
+    store.message_color = MessageColor.IDLE;
+    store.progress = 0;
+    store.window_page = "run";
     setStatus(Status.IDLE);
     if (ws) {
         ws.close();
@@ -157,7 +181,7 @@ const changeMessageColor = (status: Status) => {
 };
 
 const launchPipeline = async () => {
-    const result = await get(`https://${ORCHESTRATOR_URL}/run/${store.execution_id}`);
+    const result = await get(`http://${ORCHESTRATOR_URL}/run/${store.execution_id}`);
     if (!result) {
         setStatus(Status.FAILED);
         store.disabled = false;
@@ -172,9 +196,9 @@ const handleClick = async () => {
     store.disabled = true;
     let result;
     if (store.file.name.length > 0) {
-        result = await postFile(`https://${ORCHESTRATOR_URL}/create`, store.file!);
+        result = await postFile(`http://${ORCHESTRATOR_URL}/create`, store.file!);
     } else {
-        result = await postURL(`https://${ORCHESTRATOR_URL}/create`, store.url);
+        result = await postURL(`http://${ORCHESTRATOR_URL}/create`, store.url);
     }
     if (result) {
         store.execution_id = result.id;
@@ -186,7 +210,7 @@ const handleClick = async () => {
 };
 
 const getResult = async () => {
-    const result = await getResults(`https://${ORCHESTRATOR_URL}/result/${store.execution_id}`);
+    const result = await getResults(`http://${ORCHESTRATOR_URL}/result/${store.execution_id}`);
     if (result) {
         store.result.zip_file = result as Blob;
         const zip = new JSZip();
@@ -221,6 +245,7 @@ const downloadAll = () => {
     link.click();
     document.body.removeChild(link);
 };
+
 </script>
 
 <template>
@@ -228,19 +253,25 @@ const downloadAll = () => {
         <v-layout fill-height>
             <v-row align="center" justify="center">
                 <v-col cols="12" sm="8" md="6" lg="4">
-                    <v-card
-                        width="100%"
-                        class="mx-auto gradient rounded-lg card-container"
+                    <v-window
+                        v-model="store.window_page"
                         elevation="10"
                     >
-                        <v-card-title class="headline card">
-                            <img
-                                class="mt-3"
-                                src="@/assets/logo.svg"
-                                alt="logo"/>
-                        </v-card-title>
-                        <v-card-text
-                            v-if="
+                        <v-window-item
+                            value="run"
+                        >
+                            <v-card
+                                width="100%"
+                                class="mx-auto gradient rounded-lg card-container"
+                            >
+                                <v-card-title class="headline card">
+                                    <img
+                                        class="mt-3"
+                                        src="@/assets/logo.svg"
+                                        alt="logo"/>
+                                </v-card-title>
+                                <v-card-text
+                                    v-if="
                                 store.status == Status.CREATED ||
                                 store.status == Status.WAITING ||
                                 store.status == Status.RUNNING_YOUTUBE_DOWNLOADER ||
@@ -248,186 +279,345 @@ const downloadAll = () => {
                                 store.status == Status.RUNNING_MUSIC_STYLE ||
                                 store.status == Status.RUNNING_SENTIMENT ||
                                 store.status == Status.RUNNING_IMAGE_GENERATION"
-                            class="card card-middle"
-                        >
-                            <v-row>
-                                <v-col>
-                                    <v-progress-linear
-                                        class="rounded-lg"
-                                        v-model="store.progress"
-                                        :buffer-value="store.progress"
-                                        color="orange"
-                                        height="10"
-                                    />
-                                    <v-chip
-                                        :color="store.message_color"
-                                        text-color="white"
-                                        class="card mt-2"
-                                        size="large"
-                                        label
-                                        :prepend-icon="store.message_icon"
-                                    >
-                                        {{ store.status_message }}
-                                    </v-chip>
-                                </v-col>
-                            </v-row>
-                            <v-row class="text-center">
-                                <v-col>
-                                    <v-progress-circular
-                                        class="rounded-lg"
-                                        :size="70"
-                                        :width="7"
-                                        :value="store.progress"
-                                        :color="store.message_color"
-                                        indeterminate
-                                    />
-                                </v-col>
-                            </v-row>
-                        </v-card-text>
-                        <v-card-text
-                            v-else-if="store.status == Status.RESULT_READY || store.status == Status.FAILED"
-                            class="card card-middle pb-2">
-                            <v-carousel
-                                v-if="store.status == Status.RESULT_READY && store.result.images.length > 0"
-                                hide-delimiters
-                                sm="12"
-                                class="pt-0 rounded-lg"
-                                show-arrows="hover"
-                                style="height: auto"
-                            >
-                                <v-carousel-item
-                                    v-for="(image, index) in store.result.images"
-                                    :key="index"
-                                    :src="image"
+                                    class="card card-middle"
                                 >
-                                    <div class="title d-flex flex-row card-middle pt-4 pl-4">
-                                        <v-btn color="pink"
-                                               dark
-                                               large
-                                               @click="downloadImage(index)"
-                                               icon="mdi mdi-file-download-outline"
-                                               title="Download image"
-                                        />
-                                    </div>
-                                </v-carousel-item>
-                            </v-carousel>
-                            <v-chip
-                                v-if="store.status == Status.FAILED"
-                                color="red"
-                                text-color="white"
-                                class="card"
-                                size="large"
-                                prepend-icon="mdi mdi-alert-octagon-outline"
-                            >
-                                Error
-                            </v-chip>
-                        </v-card-text>
-                        <v-card-text v-else class="card card-middle pb-2">
-                            <v-container class="pl-0 pr-0 pb-0 pt-0">
-                                <v-row class="text-center">
-                                    <v-col class="pb-0">
-                                        <div class="custom-text-field rounded-lg mb-5">
-                                            <v-text-field
-                                                label="YouTube URL"
+                                    <v-row>
+                                        <v-col>
+                                            <v-progress-linear
+                                                class="rounded-lg"
+                                                v-model="store.progress"
+                                                :buffer-value="store.progress"
                                                 color="orange"
-                                                icon="mdi-youtube"
-                                                variant="solo"
-                                                prepend-inner-icon="mdi mdi-youtube"
-                                                @input="store.disabled = store.url.length == 0"
-                                                v-model="store.url"
-                                                :disabled="store.file.name.length > 0"
-                                                class="pb-4"
+                                                height="10"
                                             />
-                                        </div>
-                                    </v-col>
-                                </v-row>
-                                <v-row class="text-center mt-1">
-                                    <v-col class="text-amber text-h6">
-                                        OR
-                                    </v-col>
-                                </v-row>
-                                <v-row class="text-center">
-                                    <v-col>
-                                        <FileUpload/>
-                                    </v-col>
-                                </v-row>
-                            </v-container>
-                        </v-card-text>
-                        <v-card-actions class="pl-4 pr-4 pb-4 card">
-                            <v-row v-if="store.status == Status.RESULT_READY || store.status == Status.FAILED">
-                                <v-col
-                                    cols="9"
-                                    class="pr-0"
-                                    v-if="store.status == Status.RESULT_READY"
-                                >
-                                    <v-btn
-                                        elevation="2"
-                                        color="success"
-                                        variant="flat"
-                                        size="x-large"
-                                        class="rounded-lg"
-                                        height="100%"
-                                        block
-                                        v-bind="store"
-                                        @click="downloadAll"
-                                        prepend-icon="mdi mdi-folder-arrow-down-outline"
-                                        title="Download all files"
+                                            <v-chip
+                                                :color="store.message_color"
+                                                text-color="white"
+                                                class="card mt-2"
+                                                size="large"
+                                                label
+                                                :prepend-icon="store.message_icon"
+                                            >
+                                                {{ store.status_message }}
+                                            </v-chip>
+                                        </v-col>
+                                    </v-row>
+                                    <v-row class="text-center">
+                                        <v-col>
+                                            <v-progress-circular
+                                                class="rounded-lg"
+                                                :size="70"
+                                                :width="7"
+                                                :value="store.progress"
+                                                :color="store.message_color"
+                                                indeterminate
+                                            />
+                                        </v-col>
+                                    </v-row>
+                                </v-card-text>
+                                <v-card-text
+                                    v-else-if="store.status == Status.RESULT_READY || store.status == Status.FAILED"
+                                    class="card card-middle pb-2">
+                                    <v-carousel
+                                        v-if="store.status == Status.RESULT_READY && store.result.images.length > 0"
+                                        hide-delimiters
+                                        sm="12"
+                                        class="pt-0 rounded-lg"
+                                        show-arrows="hover"
+                                        style="height: auto"
                                     >
-                                        Download
-                                    </v-btn>
-                                </v-col>
-                                <v-col>
-                                    <v-btn
+                                        <v-carousel-item
+                                            v-for="(image, index) in store.result.images"
+                                            :key="index"
+                                            :src="image"
+                                        >
+                                            <div class="title d-flex flex-row card-middle pt-4 pl-4">
+                                                <v-btn color="pink"
+                                                       dark
+                                                       large
+                                                       @click="downloadImage(index)"
+                                                       icon="mdi mdi-file-download-outline"
+                                                       title="Download image"
+                                                />
+                                            </div>
+                                        </v-carousel-item>
+                                    </v-carousel>
+                                    <v-chip
                                         v-if="store.status == Status.FAILED"
-                                        elevation="2"
-                                        color="orange"
-                                        variant="elevated"
+                                        color="red"
+                                        text-color="white"
+                                        class="card"
                                         size="large"
-                                        class="rounded-lg"
-                                        block
-                                        @click="resetStore"
-                                        prepend-icon="mdi mdi-refresh"
-                                        title="Reset"
+                                        prepend-icon="mdi mdi-alert-octagon-outline"
                                     >
-                                        Start Over
-                                    </v-btn>
-                                    <v-btn
-                                        v-else
-                                        elevation="2"
-                                        color="orange"
-                                        variant="elevated"
-                                        size="large"
-                                        class="rounded-lg"
-                                        block
-                                        @click="resetStore"
-                                        icon="mdi mdi-refresh"
-                                        title="Reset"
-                                    />
-                                </v-col>
-                            </v-row>
-                            <v-row
-                                v-if="store.status != Status.RESULT_READY && store.status != Status.FAILED">
-                                <v-col>
-                                    <v-btn
-                                        elevation="2"
-                                        color="orange"
-                                        variant="flat"
-                                        size="x-large"
-                                        class="rounded-lg"
-                                        block
-                                        v-bind="store"
-                                        @click="handleClick"
-                                        :prepend-icon="store.status == Status.IDLE ?
-                                            'mdi mdi-play-box-outline' : 'mdi mdi-clock-outline'"
-                                    >
-                                        {{ store.status == Status.IDLE ? 'Launch' : ' Running...' }}
-                                    </v-btn>
-                                </v-col>
-                            </v-row>
-                        </v-card-actions>
-                    </v-card>
+                                        Error
+                                    </v-chip>
+                                </v-card-text>
+                                <v-card-text v-else class="card card-middle pb-2">
+                                    <v-container class="pl-0 pr-0 pb-0 pt-0">
+                                        <v-row class="text-center">
+                                            <v-col class="pb-0">
+                                                <div class="custom-text-field rounded-lg mb-5">
+                                                    <v-text-field
+                                                        label="YouTube URL"
+                                                        color="orange"
+                                                        icon="mdi-youtube"
+                                                        variant="solo"
+                                                        prepend-inner-icon="mdi mdi-youtube"
+                                                        @input="store.disabled = store.url.length == 0"
+                                                        v-model="store.url"
+                                                        :disabled="store.file.name.length > 0"
+                                                        class="pb-4"
+                                                    />
+                                                </div>
+                                            </v-col>
+                                        </v-row>
+                                        <v-row class="text-center mt-1">
+                                            <v-col class="text-amber text-h6">
+                                                OR
+                                            </v-col>
+                                        </v-row>
+                                        <v-row class="text-center">
+                                            <v-col>
+                                                <FileUpload/>
+                                            </v-col>
+                                        </v-row>
+                                    </v-container>
+                                </v-card-text>
+                                <v-card-actions class="pl-4 pr-4 pb-4 card">
+                                    <v-row v-if="store.status == Status.RESULT_READY || store.status == Status.FAILED">
+                                        <v-col
+                                            cols="9"
+                                            class="pr-0"
+                                            v-if="store.status == Status.RESULT_READY"
+                                        >
+                                            <v-btn
+                                                elevation="2"
+                                                color="success"
+                                                variant="flat"
+                                                size="x-large"
+                                                class="rounded-lg"
+                                                height="100%"
+                                                block
+                                                v-bind="store"
+                                                @click="downloadAll"
+                                                prepend-icon="mdi mdi-folder-arrow-down-outline"
+                                                title="Download all files"
+                                            >
+                                                Download
+                                            </v-btn>
+                                        </v-col>
+                                        <v-col>
+                                            <v-btn
+                                                v-if="store.status == Status.FAILED"
+                                                elevation="2"
+                                                color="orange"
+                                                variant="elevated"
+                                                size="x-large"
+                                                class="rounded-lg"
+                                                block
+                                                @click="resetStore"
+                                                prepend-icon="mdi mdi-refresh"
+                                                title="Reset"
+                                            >
+                                                Start Over
+                                            </v-btn>
+                                            <v-btn
+                                                v-else
+                                                elevation="2"
+                                                color="orange"
+                                                variant="elevated"
+                                                size="large"
+                                                class="rounded-lg"
+                                                block
+                                                @click="resetStore"
+                                                icon="mdi mdi-refresh"
+                                                title="Reset"
+                                            />
+                                        </v-col>
+                                        <v-divider
+                                            class="rounded-lg border-opacity-75 mt-2 mb-2 mr-3 ml-3"
+                                            :thickness="3"
+                                        />
+                                        <v-col cols="12" v-if="store.window_page != 'run'">
+                                            <v-btn
+                                                elevation="2"
+                                                color="green"
+                                                variant="flat"
+                                                size="x-large"
+                                                class="rounded-lg"
+                                                block
+                                                prepend-icon="mdi mdi-play-circle-outline"
+                                                @click="store.window_page = 'run'"
+                                            >
+                                                Execution
+                                            </v-btn>
+                                        </v-col>
+                                        <v-col cols="12" v-if="store.window_page != 'info'">
+                                            <v-btn
+                                                elevation="2"
+                                                color="blue-grey"
+                                                variant="flat"
+                                                size="x-large"
+                                                class="rounded-lg"
+                                                block
+                                                prepend-icon="mdi mdi-information-outline"
+                                                @click="store.window_page = 'info'"
+                                            >
+                                                Results
+                                            </v-btn>
+                                        </v-col>
+                                    </v-row>
+                                    <v-row v-else>
+                                        <v-col
+                                            cols="12"
+                                            v-if="store.status != Status.RESULT_READY && store.status != Status.FAILED"
+                                        >
+                                            <v-btn
+                                                elevation="2"
+                                                color="orange"
+                                                variant="flat"
+                                                size="x-large"
+                                                class="rounded-lg"
+                                                block
+                                                v-bind="store"
+                                                @click="handleClick"
+                                                :prepend-icon="store.status == Status.IDLE ?
+                                            'mdi mdi-play' : 'mdi mdi-clock-outline'"
+                                            >
+                                                {{ store.status == Status.IDLE ? 'Launch' : ' Running...' }}
+                                            </v-btn>
+                                        </v-col>
+                                        <v-divider
+                                            v-if="store.status != Status.IDLE"
+                                            class="rounded-lg border-opacity-75 mt-2 mb-2 mr-3 ml-3"
+                                            :thickness="3"
+                                        />
+                                        <v-col cols="12" v-if="store.window_page != 'run'">
+                                            <v-btn
+                                                elevation="2"
+                                                color="green"
+                                                variant="flat"
+                                                size="x-large"
+                                                class="rounded-lg"
+                                                block
+                                                prepend-icon="mdi mdi-play-circle-outline"
+                                                @click="store.window_page = 'run'"
+                                            >
+                                                Execution
+                                            </v-btn>
+                                        </v-col>
+                                        <v-col cols="12" v-if="store.window_page != 'info' &&
+                                         store.status != Status.IDLE">
+                                            <v-btn
+                                                elevation="2"
+                                                color="blue-grey"
+                                                variant="flat"
+                                                size="x-large"
+                                                class="rounded-lg"
+                                                block
+                                                prepend-icon="mdi mdi-information-outline"
+                                                @click="store.window_page = 'info'"
+                                            >
+                                                Results
+                                            </v-btn>
+                                        </v-col>
+                                    </v-row>
+                                </v-card-actions>
+                            </v-card>
+                        </v-window-item>
+                        <v-window-item
+                            value="info"
+                        >
+                            <v-card
+                                width="100%"
+                                class="mx-auto gradient rounded-lg card-container"
+                            >
+                                <v-card-title class="headline card">
+                                    <img
+                                        class="mt-3"
+                                        src="@/assets/logo.svg"
+                                        alt="logo"/>
+                                </v-card-title>
+                                <v-card-text class="pb-2">
+                                    <v-expansion-panels
+                                        focusable
+                                        class="rounded-lg">
+                                        <v-expansion-panel
+                                            class="rounded-lg"
+                                            id="whisper"
+                                            :title="store.intermediate_results.whisper.title"
+                                            :disabled="store.intermediate_results.whisper.value=='null'"
+                                        >
+                                            <v-expansion-panel-text class="custom-expansion-panel">
+                                                {{ store.intermediate_results.whisper.value }}
+                                            </v-expansion-panel-text>
+                                        </v-expansion-panel>
+                                        <v-expansion-panel
+                                            class="rounded-lg"
+                                            id="sentiment"
+                                            :title="store.intermediate_results.sentiment.title"
+                                            :disabled="store.intermediate_results.sentiment.value=='null'"
+                                        >
+                                            <v-expansion-panel-text>
+                                                <pre class="text-left custom-expansion-panel">
+                                                    {{ store.intermediate_results.sentiment.value }}
+                                                </pre>
+                                            </v-expansion-panel-text>
+                                        </v-expansion-panel>
+                                        <v-expansion-panel
+                                            class="rounded-lg"
+                                            id="music_style"
+                                            :title="store.intermediate_results.music_style.title"
+                                            :disabled="store.intermediate_results.music_style.value=='null'"
+                                        >
+                                            <v-expansion-panel-text>
+                                                <pre class="text-left custom-expansion-panel">
+                                                    {{ store.intermediate_results.music_style.value }}
+                                                </pre>
+                                            </v-expansion-panel-text>
+                                        </v-expansion-panel>
+                                    </v-expansion-panels>
+                                </v-card-text>
+                                <v-card-actions class="pl-4 pr-4 pb-4 card">
+                                    <v-row>
+                                        <v-col cols="12" v-if="store.window_page != 'run'">
+                                            <v-btn
+                                                elevation="2"
+                                                color="light-green"
+                                                variant="flat"
+                                                size="x-large"
+                                                class="rounded-lg"
+                                                block
+                                                prepend-icon="mdi mdi-play-circle-outline"
+                                                @click="store.window_page = 'run'"
+                                            >
+                                                Execution
+                                            </v-btn>
+                                        </v-col>
+                                        <v-col cols="12" v-if="store.window_page != 'info'">
+                                            <v-btn
+                                                elevation="2"
+                                                color="blue-grey"
+                                                variant="flat"
+                                                size="x-large"
+                                                class="rounded-lg"
+                                                block
+                                                prepend-icon="mdi mdi-information-outline"
+                                                @click="store.window_page = 'info'"
+                                            >
+                                                Results
+                                            </v-btn>
+                                        </v-col>
+                                    </v-row>
+                                </v-card-actions>
+                            </v-card>
+                        </v-window-item>
+                    </v-window>
                 </v-col>
             </v-row>
+            <!-- create a new row with buttons to switch between the 2 windows -->
+
         </v-layout>
     </v-container>
 </template>
@@ -435,6 +625,7 @@ const downloadAll = () => {
 <style scoped>
 .full-height {
     height: 100vh;
+    overflow: auto;
 }
 
 .card-container {
@@ -464,6 +655,16 @@ const downloadAll = () => {
 .gradient {
     background: linear-gradient(109.6deg, rgb(0, 37, 84) 11.2%, rgba(0, 37, 84, 0.32) 100.2%);
     color: white;
+}
+
+.custom-expansion-panel {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-width: 100%;
+
+    @media (max-width: 600px) {
+        max-width: 326px;
+    }
 }
 
 .custom-text-field {
