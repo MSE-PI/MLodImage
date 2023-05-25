@@ -120,7 +120,7 @@ class Pipeline(BaseModel):
 
 
 pipelines: list[Pipeline] = []
-audio_supported = ["audio/wav", "audio/mpeg", "audio/x-m4a", "audio/ogg"]
+audio_supported = ["audio/mpeg", "audio/ogg"]
 
 SERVICE_URL_TEMPLATE = "https://{}-mlodimage.kube.isc.heia-fr.ch"
 YOUTUBE_DOWNLOADER_URL = SERVICE_URL_TEMPLATE.format("youtube-downloader")
