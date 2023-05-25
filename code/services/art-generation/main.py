@@ -136,7 +136,6 @@ class MyService(Service):
 
     def process(self, data):
         print("Data processing...")
-        print(data)
 
         lyrics_analysis = json.loads(data["lyrics_analysis"].data)
         print(lyrics_analysis)
@@ -343,19 +342,16 @@ async def handle_process(data: Data):
     print("Building archive")
     archive = BytesIO()
     with zipfile.ZipFile(archive, 'w') as zip_file:
-        print("Add images to the archive")
         for root, dirs, files in os.walk(image_dir):
             for file in files:
                 file_path = os.path.join(root, file)
                 zip_file.write(file_path)
 
     # Save the archive on disk
-    print("Save archive on disk")
     archive_path = "images.zip"
     with open(archive_path, "wb") as f:
         f.write(archive.getvalue())
 
-    print("Archive", type(archive.getvalue()))
     print("Archive path", archive_path)
 
     return FileResponse(archive_path, media_type="application/zip", filename="images.zip",
