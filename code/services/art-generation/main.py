@@ -20,13 +20,11 @@ from common_code.common.enums import FieldDescriptionType, ExecutionUnitTagName,
 from common_code.common.models import FieldDescription, ExecutionUnitTag
 
 # Imports required by the service's model
-import io
 import zipfile
 import subprocess
 import torch
 from compel import Compel
-from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler, AutoencoderKL, UNet2DConditionModel, \
-    LMSDiscreteScheduler
+from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import download_from_original_stable_diffusion_ckpt
 from io import BytesIO
 
