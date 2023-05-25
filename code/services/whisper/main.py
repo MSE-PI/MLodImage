@@ -11,7 +11,7 @@ import json
 import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.responses import RedirectResponse
 from common_code.config import get_settings
 from pydantic import Field
 from common_code.http_client import HttpClient
@@ -27,15 +27,12 @@ from common_code.service.enums import ServiceStatus
 from common_code.common.enums import FieldDescriptionType, ExecutionUnitTagName, ExecutionUnitTagAcronym
 from common_code.common.models import FieldDescription, ExecutionUnitTag
 
-
 # service specific imports
 import os
 import torch
 import whisper
-import uvicorn
 from tempfile import NamedTemporaryFile
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import UploadFile, File, HTTPException
 from whisper import Whisper
 
 settings = get_settings()
@@ -62,11 +59,17 @@ class MyService(Service):
             description=api_description,
             status=ServiceStatus.AVAILABLE,
             data_in_fields=[
-                FieldDescription(name="text", type=[FieldDescriptionType.TEXT_PLAIN]),
+                FieldDescription(name="audio", type=[FieldDescriptionType.AUDIO_MP3, FieldDescriptionType.AUDIO_OGG]),
             ],
             data_out_fields=[
                 FieldDescription(name="result", type=[FieldDescriptionType.APPLICATION_JSON]),
-            ]
+            ],
+            tags=[
+                ExecutionUnitTag(
+                    name=ExecutionUnitTagName.SPEECH_RECOGNITION,
+                    acronym=ExecutionUnitTagAcronym.SPEECH_RECOGNITIONm
+                ),
+            ],
         )
 
         # load the model :
@@ -163,8 +166,33 @@ async def startup_event():
     # Start the tasks service
     tasks_service.start()
 
+    async def announce():
+        retries = settings.engine_announce_retries
+        for engine_url in settings.engine_urls:
+            announced = False
+            while not announced and retries > 0:
+                announced = await service_service.announce_service(my_service, engine_url)
+                retries -= 1
+                if not announced:
+                    time.sleep(settings.engine_announce_retry_delay)
+                    if retries == 0:
+                        logger.warning(f"Aborting service announcement after "
+                                       f"{settings.engine_announce_retries} retries")
 
-@app.post('/process')
+    # Announce the service to its engine
+    asyncio.ensure_future(announce())
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    # Global variable
+    global service_service
+    my_service = MyService()
+    for engine_url in settings.engine_urls:
+        await service_service.graceful_shutdown(my_service, engine_url)
+
+
+@app.post('/process', tags=['Process'])
 async def process(audio: UploadFile = File(...)):
     """
     Route to do the speech recognition on the audio file given in the request
@@ -176,7 +204,10 @@ async def process(audio: UploadFile = File(...)):
     if audio.content_type not in audio_supported:
         raise HTTPException(status_code=400, detail="Invalid audio file given")
     # Get audio file type
-    AUDIO_TYPE: FieldDescriptionType = FieldDescriptionType.AUDIO_MP3 if audio.content_type == "audio/mpeg" else FieldDescriptionType.AUDIO_OGG
+    if audio.content_type == "audio/mpeg":
+        AUDIO_TYPE = FieldDescriptionType.AUDIO_MP3
+    else:
+        AUDIO_TYPE = FieldDescriptionType.AUDIO_OGG
     # convert audio to bytes
     audio_bytes = await audio.read()
     # call service to process audio
@@ -184,7 +215,3 @@ async def process(audio: UploadFile = File(...)):
     # Return the result
     data = json.loads(result["result"].data)
     return data
-
-
-if __name__ == '__main__':
-    uvicorn.run(app, host="0.0.0.0", port=8000)
