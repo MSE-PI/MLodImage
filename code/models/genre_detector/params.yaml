@@ -1,6 +1,6 @@
 train:
   batch_size: 16
-  max_epochs: 1
+  max_epochs: 2
   val_split: 0.2
   nb_workers: 0 # set to 0 if you get an error
 
