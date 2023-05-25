@@ -362,17 +362,15 @@ async def handle_process(data: Data):
 
 
 @app.post("/test", tags=['Test'])
-async def test(prompt: str, negative_prompts: str):
-    s = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-    p = StableDiffusionPipeline.from_pretrained(model_id, scheduler=s).to("cuda")
-    c = Compel(tokenizer=p.tokenizer, text_encoder=p.text_encoder)
+async def test(model_id: str, prompt: str, negative_prompts: str, nb_steps: int, guidance_scale: float):
+    pipe, compel = build_pipeline_from_model_id(model_id)
 
     print("Prompt embedding...")
-    prompt_embeds = c(prompt)
-    negative_prompts_embeds = c(negative_prompts)
+    prompt_embeds = compel(prompt)
+    negative_prompts_embeds = compel(negative_prompts)
 
     print("Image generation...")
-    images = p(prompt_embeds=prompt_embeds,
+    images = pipe(prompt_embeds=prompt_embeds,
                num_inference_steps=nb_steps,
                guidance_scale=guidance_scale,
                negative_prompt_embeds=negative_prompts_embeds,
