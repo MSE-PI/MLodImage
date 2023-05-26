@@ -120,7 +120,7 @@ class Pipeline(BaseModel):
 
 
 pipelines: list[Pipeline] = []
-audio_supported = ["audio/wav", "audio/mpeg", "audio/x-m4a", "audio/ogg"]
+audio_supported = ["audio/mpeg", "audio/ogg"]
 
 SERVICE_URL_TEMPLATE = "https://{}-mlodimage.kube.isc.heia-fr.ch"
 YOUTUBE_DOWNLOADER_URL = SERVICE_URL_TEMPLATE.format("youtube-downloader")
@@ -132,7 +132,7 @@ SERVICE_ROUTE = "/process"
 
 
 async def save_audio(audio: io.BytesIO, file_type: str):
-    # Save the audio file to the audio folder
+    # Save the audio file to the audios folder
     try:
         with NamedTemporaryFile(suffix="." + file_type, dir="./audios/", delete=False) as f:
             f.write(audio.read())
@@ -220,13 +220,14 @@ async def run_pipeline():
             # Transform response.content to a BinaryIO
             audio = io.BytesIO(response.content)
             pipeline.audio_path = await save_audio(audio, "mp3")
+            pipeline.audio_type = "audio/mpeg"
 
         # Call whisper service
         await update_pipeline_status(pipeline, PipelineStatus.RUNNING_WHISPER, "youtube_downloader",
                                      pipeline.audio_path)
         audio_file = open(pipeline.audio_path, "rb")
         audio_file_bytes = audio_file.read()
-        audio_type = pipeline.audio_type if pipeline.audio_type else "audio/wav"
+        audio_type = pipeline.audio_type if pipeline.audio_type else "audio/mpeg"
         print("Calling whisper service", WHISPER_URL + SERVICE_ROUTE)
         response = requests.post(WHISPER_URL + SERVICE_ROUTE,
                                  files={"audio": (pipeline.audio_path, audio_file_bytes, audio_type)})
