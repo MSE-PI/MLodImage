@@ -77,6 +77,10 @@ export const store = reactive({
         music_style: {
             title: "Music Style Detection",
             value: 'null',
+        },
+        image_generation: {
+            title: "Image Generation",
+            value: 'null',
         }
     },
     status: Status.IDLE,

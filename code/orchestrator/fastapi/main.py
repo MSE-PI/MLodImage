@@ -108,6 +108,7 @@ class PipelineInformation(BaseModel):
         "whisper": None,
         "sentiment_analysis": None,
         "music_style": None,
+        "image_generation": None,
     }
 
 
@@ -170,9 +171,7 @@ def delete_finished_pipelines():
 
 
 def get_pipeline_by_id(pipeline_id: str):
-    print("get_pipeline_by_id", pipeline_id)
     for pipeline in pipelines:
-        print(pipeline.informations.id)
         if pipeline.informations.id == pipeline_id:
             return pipeline
     return None
@@ -274,6 +273,11 @@ async def run_pipeline():
                                          "Error while generating images")
             continue
 
+        response_metadata = {
+            "prompt": response.headers["prompt"],
+            "negative_prompts": response.headers["negative_prompts"],
+            "model_ids": response.headers["model_ids"],
+        }
         print("Creating zip file with generated images")
         zip_file_content = response.content
 
@@ -287,7 +291,7 @@ async def run_pipeline():
                 f.writestr(file, zf.read(file))
 
         pipeline.result_path = archive_path
-        await update_pipeline_status(pipeline, PipelineStatus.RESULT_READY, "image_generation", "Images generated")
+        await update_pipeline_status(pipeline, PipelineStatus.RESULT_READY, "image_generation", response_metadata)
 
 
 @app.get("/reload", tags=['Pipeline'])
