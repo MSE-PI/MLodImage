@@ -690,8 +690,6 @@ const downloadAll = () => {
                     </v-window>
                 </v-col>
             </v-row>
-            <!-- create a new row with buttons to switch between the 2 windows -->
-
         </v-layout>
     </v-container>
 </template>
