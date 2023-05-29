@@ -5,7 +5,6 @@ import FileUpload from '@/components/FileUpload.vue';
 import JSZip from 'jszip';
 
 const isMobile = () => {
-    console.log('window.innerWidth: ', window.innerWidth)
     return window.innerWidth <= 768;
 };
 const ORCHESTRATOR_URL = 'orchestrator-mlodimage.kube.isc.heia-fr.ch';
@@ -31,11 +30,8 @@ const initWebSocket = () => {
         const message = JSON.parse(msg.data);
         setStatus(message.status);
         if (message.status == Status.RESULT_READY) {
-            console.log('message.results: ', message.results)
             store.intermediate_results.image_generation_models.value = JSON.parse(message.results.image_generation.model_ids);
-            store.intermediate_results.image_generation.value = JSON.stringify(message.results);
-            console.log('store.intermediate_results.image_generation.value: ', store.intermediate_results.image_generation.value)
-            console.log('store.intermediate_results.image_generation_models.value: ', store.intermediate_results.image_generation_models.value)
+            store.intermediate_results.image_generation.value = JSON.stringify(message.results.image_generation);
             getResult();
         } else if (message.status == Status.FAILED) {
             store.disabled = false;
@@ -48,9 +44,6 @@ const initWebSocket = () => {
             }
             if (message.results && message.results.music_style) {
                 store.intermediate_results.music_style.value = message.results.music_style;
-            }
-            if (message.results && message.results.image_generation) {
-                store.intermediate_results.image_generation.value = message.results.image_generation;
             }
             if (message.results) {
                 console.log('message.results: ', message.results)
@@ -705,7 +698,7 @@ const downloadAll = () => {
 
 <style scoped>
 .full-height {
-    height: 100vh;
+    height: 95vh;
     overflow: auto;
 }
 
