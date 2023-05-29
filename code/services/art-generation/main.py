@@ -34,7 +34,7 @@ from io import BytesIO
 
 settings = get_settings()
 loaded = False
-model_ids = ['stabilityai/stable-diffusion-2-base','prompthero/openjourney', './music-cover']
+model_ids = ['stabilityai/stable-diffusion-2-base','prompthero/openjourney', 'custom/music-cover']
 guidance_scale = 5
 nb_steps = 50
 nb_images_per_model = 1
