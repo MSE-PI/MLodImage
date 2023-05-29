@@ -696,7 +696,6 @@ const downloadAll = () => {
 
 <style scoped>
 .full-height {
-    // height full size
     height: 100vh;
     overflow: auto;
 }
