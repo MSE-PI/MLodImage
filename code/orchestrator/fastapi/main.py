@@ -104,7 +104,6 @@ class PipelineInformation(BaseModel):
     id: str
     status: PipelineStatus
     results: dict = {
-        "youtube_downloader": None,
         "whisper": None,
         "sentiment_analysis": None,
         "music_style": None,
@@ -208,12 +207,12 @@ async def run_pipeline():
 
         if pipeline.audio_path is None:
             # Call youtube-downloader service
-            await update_pipeline_status(pipeline, PipelineStatus.RUNNING_YOUTUBE_DOWNLOADER, "youtube_downloader",
+            await update_pipeline_status(pipeline, PipelineStatus.RUNNING_YOUTUBE_DOWNLOADER, "whisper",
                                          "Downloading audio")
             print("Calling youtube-downloader service", YOUTUBE_DOWNLOADER_URL + SERVICE_ROUTE)
             response = requests.post(YOUTUBE_DOWNLOADER_URL + SERVICE_ROUTE, params={"url": pipeline.url})
             if not isResponseOK(response):
-                await update_pipeline_status(pipeline, PipelineStatus.FAILED, "youtube_downloader",
+                await update_pipeline_status(pipeline, PipelineStatus.FAILED, "whisper",
                                              "Error while downloading audio")
                 continue
             # Transform response.content to a BinaryIO
@@ -222,8 +221,7 @@ async def run_pipeline():
             pipeline.audio_type = "audio/mpeg"
 
         # Call whisper service
-        await update_pipeline_status(pipeline, PipelineStatus.RUNNING_WHISPER, "youtube_downloader",
-                                     pipeline.audio_path)
+        await update_pipeline_status(pipeline, PipelineStatus.RUNNING_WHISPER, "whisper", "Extracting lyrics")
         audio_file = open(pipeline.audio_path, "rb")
         audio_file_bytes = audio_file.read()
         audio_type = pipeline.audio_type if pipeline.audio_type else "audio/mpeg"

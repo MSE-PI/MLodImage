@@ -81,6 +81,10 @@ export const store = reactive({
         image_generation: {
             title: "Image Generation",
             value: 'null',
+        },
+        image_generation_models: {
+            title: "Image Generation Models",
+            value: [],
         }
     },
     status: Status.IDLE,
