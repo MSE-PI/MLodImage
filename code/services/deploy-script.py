@@ -67,7 +67,7 @@ def discover_services() -> None:
             # check if the service has a Dockerfile and is in the list of modified services
             if os.path.isfile(f"{service}/Dockerfile") and service in modified_services:
                 # check if the service has a pre-script to run before building the docker image
-                if os.path.isfile(f"{service}/.pre.sh"):
+                if os.path.isfile(f"{service}/pre.sh"):
                     print(f"Running pre-script for {service}...")
                     status = os.system(f"sh {service}/.pre.sh")
                     if status != 0:

@@ -41,7 +41,7 @@ from pydub import AudioSegment
 
 # support audio : wav, mpeg, m4a, ogg
 AUDIO_SUPPORTED = ["audio/mpeg", "audio/ogg"]
-AUDIO_DURATION = 30000  # equals 3 seconds
+AUDIO_DURATION = 30000  # equals 30 seconds
 SAMPLE_RATE = 44100
 N_CHANNELS = 2
 
