@@ -2,19 +2,21 @@ stages:
   train:
     cmd: python src/train.py
     deps:
-    - data/FMA
+    - data
     - src/train.py
+    - src/model/audio_cnn.py
+    - src/model/audio_utils.py
     params:
     - train
     outs:
-    - model.ckpt
-
+    - src/model/model.ckpt
+    - src/model/id_to_label.json
   evaluate:
     cmd: python src/evaluate.py
     deps:
     - src/evaluate.py
-    - data/GTZAN
-    - model.ckpt
+    - data
+    - src/model/model.ckpt
     params:
     - evaluate
     metrics:
