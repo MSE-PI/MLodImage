@@ -69,7 +69,7 @@ def discover_services() -> None:
                 # check if the service has a pre-script to run before building the docker image
                 if os.path.isfile(f"{service}/pre.sh"):
                     print(f"Running pre-script for {service}...")
-                    status = os.system(f"sh {service}/.pre.sh")
+                    status = os.system(f"sh {service}/pre.sh")
                     if status != 0:
                         raise Exception(f"Error while running pre-script for {service}")
                 docker_build(service)
