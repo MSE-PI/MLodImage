@@ -7,7 +7,7 @@ import { useDropzone } from 'vue3-dropzone';
 const {getRootProps, getInputProps, isDragActive, ...rest} = useDropzone({
     onDrop,
     multiple: false,
-    accept: '.mp3, .ogg, .wav',
+    accept: '.mp3, .ogg',
 });
 
 watch(store, () => {});
@@ -27,10 +27,10 @@ function handleClickDeleteFile() {
 </script>
 
 <template>
-    <div style="height: 100%">
+    <div style="height: 100%" :class="{'disabled': store.url.length > 0}">
         <div v-if="store.file.name" class="files">
             <div class="file-item p-0">
-                <v-chip color="orange" label class="radius-8" size="x-large" prepend-icon="mdi mdi-file-music-outline">
+                <v-chip color="orange" label class="rounded-lg" size="x-large" prepend-icon="mdi mdi-file-music-outline">
                     <span class="wrap-class">{{ store.file.name }}</span>
                 </v-chip>
                 <v-btn class="delete-file mt-8" elevation="1" size="large" @click="handleClickDeleteFile()" prepend-icon="mdi mdi-delete">
@@ -45,15 +45,23 @@ function handleClickDeleteFile() {
                     isDragActive,
                 }"
             >
-                <input v-bind="getInputProps()" />
-                <p v-if="isDragActive">Drop the music file here ...</p>
-                <p v-else>Drag and drop a music file here, or Click to select file</p>
+                <input v-bind="getInputProps()" :disabled="store.url.length > 0"/>
+                <v-icon color="grey lighten-1" class="mr-1">mdi mdi-file-music-outline</v-icon>
+                <p v-if="isDragActive"> Drop the music file here ...</p>
+                <p v-else> Drag and drop a music file here, or Click to select file</p>
             </div>
         </div>
     </div>
 </template>
 
 <style lang="scss" scoped>
+.disabled {
+    opacity: 0.6;
+    background-color: #f2f2f2;
+    pointer-events: none;
+    border-radius: 8px;
+}
+
 .dropzone,
 .files {
   width: 100%;
@@ -63,7 +71,7 @@ function handleClickDeleteFile() {
   border-radius: 8px;
   box-shadow: rgba(60, 64, 67, 0.3) 0 1px 2px 0,
   rgba(60, 64, 67, 0.15) 0 1px 3px 1px;
-  font-size: 12px;
+  font-size: 16px;
   background-color: #fff;
   line-height: 1.5;
 }

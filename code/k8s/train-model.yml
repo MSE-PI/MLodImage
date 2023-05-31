@@ -8,6 +8,12 @@ spec:
       containers:
         - image: ghcr.io/mse-pi/model-trainer:latest
           name: model-trainer
+          requests:
+            tencent.com/vcuda-core: 5
+            tencent.com/vcuda-memory: 16
+          limits:
+            tencent.com/vcuda-core: 5
+            tencent.com/vcuda-memory: 16
           env:
             - name: MINIO_PWD
               valueFrom:

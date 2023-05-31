@@ -3,16 +3,15 @@ name: train-report-workflow
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on pull request events but only for the "main" branch
+  # Triggers the workflow on pull request events
   pull_request:
-    branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
+  # This workflow contains a single job called "report"
   report:
     permissions: write-all
     if: github.event_name == 'pull_request'
@@ -31,8 +30,7 @@ jobs:
           MINIO_USR: ${{ secrets.MINIO_USR }}
           MINIO_PWD: ${{ secrets.MINIO_PWD }}
         run: |
-          dvc remote modify --local storage access_key $MINIO_USR
-          dvc remote modify --local storage secret_key $MINIO_PWD
+          envsubst < .dvc/config > .dvc/config.local
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
@@ -67,7 +65,7 @@ jobs:
           echo "## Confusion matrix" >> report.md
           echo >> report.md
           dvc plots diff \
-            --target evaluation/plots/sklearn/confusion_matrix.json \
+            --target dvc_logs/plots/sklearn/cm.json \
             --template confusion \
             -x actual \
             -y predicted \

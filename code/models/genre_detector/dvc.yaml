@@ -1,6 +1,6 @@
 stages:
   train:
-    cmd: python src/train.py
+    cmd: python3 src/train.py
     deps:
     - data
     - src/train.py
@@ -12,7 +12,7 @@ stages:
     - src/model/model.ckpt
     - src/model/id_to_label.json
   evaluate:
-    cmd: python src/evaluate.py
+    cmd: python3 src/evaluate.py
     deps:
     - src/evaluate.py
     - data

@@ -17,7 +17,7 @@ stages:
       params.yaml:
         evaluate:
           batch_size: 1
-          nb_workers: 10
+          nb_workers: 0
     outs:
     - path: dvc_logs/metrics.json
       md5: b7e1ba5867e6d19935832aa3bfc5768a

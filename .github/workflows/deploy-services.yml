@@ -5,7 +5,7 @@ name: deploy-services-workflow
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "develop" ]
+    branches: [ "main" ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -51,12 +51,18 @@ jobs:
         run: |
           kubectl -n ${{ vars.SERVICE_NAMESPACE }} create secret docker-registry github-cred --docker-server=ghcr.io --docker-username=${{ secrets.REGISTRY_USER }} --docker-password=${{ secrets.REGISTRY_TOKEN }} -o yaml --save-config --dry-run=client | kubectl apply -f -
 
+      - name: Install DVC for pyton deploy script
+        run: |
+          pip install -r requirements.txt
 
       - name: Run python script
         env:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
           DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
           PYTHONUNBUFFERED: 1
+          MINIO_USR: ${{ secrets.MINIO_USR }}
+          MINIO_PWD: ${{ secrets.MINIO_PWD }}
+          REPO_ROOT: ${{ github.workspace }}
         run: |
           cd code/services
           python3 deploy-script.py 
