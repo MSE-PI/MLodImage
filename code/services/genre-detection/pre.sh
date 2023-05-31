@@ -6,6 +6,8 @@ cd $REPO_ROOT
 
 dvc pull train
 
-cp code/models/genre-detection/model.ckpt code/services/genre-detection/model/
+cp code/models/genre_detector/model.ckpt code/services/genre-detection/model/
 
-cp code/models/genre-detection/src/* code/services/genre-detection/model/
+cp code/models/genre_detector/src/* code/services/genre-detection/model/
+
+envsubst < .dvc/config > .dvc/config.local
