@@ -32,7 +32,7 @@ from tempfile import NamedTemporaryFile
 from fastapi import HTTPException, UploadFile, File
 from model.audio_cnn import AudioCNN
 from model.audio_utils import AudioUtils
-import torchaudio
+import yaml
 import torch
 import os
 from minio import Minio
@@ -41,9 +41,7 @@ from pydub import AudioSegment
 
 # support audio : wav, mpeg, m4a, ogg
 AUDIO_SUPPORTED = ["audio/mpeg", "audio/ogg"]
-AUDIO_DURATION = 30000  # equals 30 seconds
-SAMPLE_RATE = 44100
-N_CHANNELS = 2
+AUDIO_PARAMS = yaml.safe_load(open("params.yaml"))['audio']
 
 CURRENT_PATH = os.getcwd()
 settings = get_settings()
@@ -76,15 +74,14 @@ class MyService(Service):
         )
 
         # load json file containing the mapping between the genre and the index
-        with open('id_to_label.json') as f:
+        with open('model/id_to_label.json') as f:
             self.mapping = json.load(f)
 
         # load the model
         torch.cuda.is_available()  # Check if NVIDIA GPU is available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = AudioCNN()
-        checkpoint = torch.load(os.path.join("model", "model.ckpt"))
-        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.model = AudioCNN(nb_channels=AUDIO_PARAMS["nb_channels"], nb_classes=len(self.mapping))
+        self.model.load_from_checkpoint("model/model.ckpt")
         self.model.to(self.device)
         self.model.eval()
         print("Model loaded successfully, running on device: " + str(self.device))
@@ -96,11 +93,11 @@ class MyService(Service):
             with NamedTemporaryFile(dir="./audio/", delete=True) as f:
                 f.write(audio_file)
                 AudioSegment.from_file(f.name).export(f.name, format="wav")
-                audio = AudioUtil.open(f.name)
-                audio = AudioUtil.rechannel(audio, N_CHANNELS)
-                audio = AudioUtil.resample(audio, SAMPLE_RATE)
-                audio = AudioUtil.pad_truncate(audio, AUDIO_DURATION)
-                mel_spectrogram = AudioUtil.mel_spectrogram(audio)
+                audio = AudioUtils.open(f.name)
+                audio = AudioUtils.rechannel(audio, AUDIO_PARAMS["nb_channels"])
+                audio = AudioUtils.resample(audio, AUDIO_PARAMS["sample_rate"])
+                audio = AudioUtils.pad_truncate(audio, AUDIO_PARAMS["audio_duration"])
+                mel_spectrogram = AudioUtils.mel_spectrogram(audio)
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 

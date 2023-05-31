@@ -1,28 +1,24 @@
-from torch.utils.data import DataLoader, Dataset, random_split
-import pytorch_lightning as pl
-from dvclive.lightning import DVCLiveLogger
+from torch.utils.data import DataLoader, Dataset
 from dvclive import Live
 import torch
 
 import yaml
-# import wandb
 import pandas as pd
 import os
-import sys
 import json
 from tqdm import tqdm
 import numpy as np
 
-from audio_utils import AudioUtils
-from audio_cnn import AudioCNN
+from model.audio_utils import AudioUtils
+from model.audio_cnn import AudioCNN
 
 
-TEST_DATA_DIR: str = os.path.join(os.getcwd(), 'data', 'GTZAN')
-AUDIO_DIR: str = os.path.join(TEST_DATA_DIR, 'genres_original_all')
-
-METADATA: pd.DataFrame = pd.read_csv(os.path.join(TEST_DATA_DIR, 'gtzan_genres.csv'))
-with open ('id_to_label.json') as f:
+DATA_DIR: str = os.path.join(os.getcwd(), 'data')
+AUDIO_DIR: str = os.path.join(DATA_DIR, 'raw', 'audio')
+METADATA: pd.DataFrame = pd.read_csv(os.path.join(DATA_DIR, 'prepared', 'test_genres.csv'))
+with open(os.path.join(os.getcwd(), 'src', 'model', 'id_to_label.json')) as f:
     ID_TO_LABEL = json.load(f)
+NB_CLASSES: int = len(ID_TO_LABEL)
 PARAMS = yaml.safe_load(open("params.yaml"))
 TEST_PARAMS = PARAMS['evaluate']
 AUDIO_PARAMS = PARAMS['audio']
@@ -68,7 +64,7 @@ class GenreDataset(Dataset):
         audio = AudioUtils.open(audio_file_path)
         audio = AudioUtils.rechannel(audio, AUDIO_PARAMS['nb_channels'])
         audio = AudioUtils.resample(audio, AUDIO_PARAMS['sample_rate'])
-        audio = AudioUtils.pad_truncate(audio, AUDIO_PARAMS['duration'])
+        audio = AudioUtils.pad_truncate(audio, AUDIO_PARAMS['audio_duration'])
         mel_spectrogram = AudioUtils.mel_spectrogram(audio)
 
         return (mel_spectrogram, genre_id)
@@ -78,14 +74,11 @@ def main():
     test_loader = DataLoader(test_dataset, batch_size=TEST_PARAMS['batch_size'], shuffle=False, num_workers=TEST_PARAMS['nb_workers'])
 
     with Live(dir='dvc_logs', report='html') as live:
-        model = AudioCNN.load_from_checkpoint('model.ckpt', nb_classes=11)
+        model = AudioCNN.load_from_checkpoint(os.path.join(os.getcwd(), 'src', 'model', 'model.ckpt'), nb_classes=NB_CLASSES)
         model.eval()
 
-        # second evaluation for the confusion matrix
+        # evaluation
         print('Getting predictions...')
-
-        model = AudioCNN.load_from_checkpoint('model.ckpt', nb_classes=11)
-        model.eval()
 
         # get all the predictions
         y_pred = []
