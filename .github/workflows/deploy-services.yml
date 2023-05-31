@@ -57,6 +57,9 @@ jobs:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
           DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
           PYTHONUNBUFFERED: 1
+          MINIO_USR: ${{ secrets.MINIO_USR }}
+          MINIO_PWD: ${{ secrets.MINIO_PWD }}
+          REPO_ROOT: ${{ github.workspace }}
         run: |
           cd code/services
           python3 deploy-script.py 

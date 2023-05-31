@@ -21,6 +21,7 @@ SERVICES_PORT: int = 8000
 
 def main():
     global DOCKER_REGISTRY, SERVICE_NAMESPACE
+    print("ROOT:" + os.environ["REPO_ROOT"])
     # read environment variables
     DOCKER_REGISTRY = os.environ["DOCKER_REGISTRY"]
     SERVICE_NAMESPACE = os.environ["NAMESPACE"]
@@ -65,6 +66,12 @@ def discover_services() -> None:
         if os.path.isdir(service):
             # check if the service has a Dockerfile and is in the list of modified services
             if os.path.isfile(f"{service}/Dockerfile") and service in modified_services:
+                # check if the service has a pre-script to run before building the docker image
+                if os.path.isfile(f"{service}/.pre.sh"):
+                    print(f"Running pre-script for {service}...")
+                    status = os.system(f"sh {service}/.pre.sh")
+                    if status != 0:
+                        raise Exception(f"Error while running pre-script for {service}")
                 docker_build(service)
                 if os.path.isfile(f"{service}/.build-only"):
                     print(f"Skipping deployment of {service}")
