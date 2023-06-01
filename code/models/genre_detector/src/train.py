@@ -1,7 +1,5 @@
 from torch.utils.data import DataLoader, Dataset, random_split
 import pytorch_lightning as pl
-from dvclive.lightning import DVCLiveLogger
-from dvclive import Live
 # from pytorch_lightning.loggers import WandbLogger
 
 import yaml
@@ -81,7 +79,7 @@ def main():
     val_loader = DataLoader(val_dataset, batch_size=TRAIN_PARAMS['batch_size'], shuffle=False, num_workers=TRAIN_PARAMS['nb_workers'])
 
     # create the model
-    model = AudioCNN(lr=TRAIN_PARAMS['init_lr'], nb_channels=AUDIO_PARAMS['nb_channels'], nb_classes=NB_CLASSES)
+    model = AudioCNN(nb_channels=AUDIO_PARAMS['nb_channels'], nb_classes=NB_CLASSES, lr=TRAIN_PARAMS['init_lr'])
 
     # checkpoint callback to save only the best model
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
