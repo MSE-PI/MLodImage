@@ -1,0 +1,67 @@
+{
+    "name": "Cover Generator",
+    "slug": "cover-generator",
+    "summary": "Generate a cover image for a song",
+    "description": "Generate a cover image for a song based on the song's lyrics and music style.",
+    "data_in_fields": [
+        {
+            "name": "audio",
+            "type": [
+                "audio/mp3",
+                "audio/ogg"
+              ]
+        }
+    ],
+    "data_out_fields": [
+        {
+            "name": "image1",
+            "type": [
+                "image/png"
+            ]
+        },
+        {
+            "name": "image2",
+            "type": [
+                "image/png"
+            ]
+        },
+        {
+            "name": "image3",
+            "type": [
+                "image/png"
+            ]
+        },
+        {
+            "name": "metadata",
+            "type": [
+                "application/json"
+            ]
+        }
+    ],
+    "steps": [
+        {
+            "identifier": "whisper",
+            "needs": [],
+            "inputs": ["pipeline.audio"],
+            "service_id": "92ceed51-3bf0-42f5-9386-13a9e3b0bf46"
+        },
+        {
+            "identifier": "genre-detection",
+            "needs": [],
+            "inputs": ["pipeline.audio"],
+            "service_id": "02aa7f9c-b827-450a-a97b-278ce6502bee"
+        },
+        {
+            "identifier": "sentiment-analysis",
+            "needs": ["whisper"],
+            "inputs": ["whisper.result"],
+            "service_id": "36f8137a-b140-4ea1-bb3f-7cec3c71b6a1"
+        },
+        {
+            "identifier": "art-generation",
+            "needs": ["sentiment-analysis", "genre-detection"],
+            "inputs": ["sentiment-analysis.result", "genre-detection.result"],
+            "service_id": "017483aa-c16e-4850-9a34-fae2e3639292"
+        }
+    ]
+}
