@@ -62,7 +62,7 @@ class MyService(Service):
                 FieldDescription(name="audio", type=[FieldDescriptionType.AUDIO_MP3, FieldDescriptionType.AUDIO_OGG]),
             ],
             data_out_fields=[
-                FieldDescription(name="result", type=[FieldDescriptionType.APPLICATION_JSON]),
+                FieldDescription(name="result", type=[FieldDescriptionType.TEXT_PLAIN]),
             ],
             tags=[
                 ExecutionUnitTag(
@@ -93,7 +93,7 @@ class MyService(Service):
 
         return {
             "result": TaskData(
-                data=json.dumps(result),
+                data=result.text,
                 type=FieldDescriptionType.APPLICATION_JSON
             )
         }

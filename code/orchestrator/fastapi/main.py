@@ -233,7 +233,6 @@ async def run_pipeline():
             await update_pipeline_status(pipeline, PipelineStatus.FAILED, "whisper", "Error while extracting lyrics")
             continue
         lyrics = response.json()
-        lyrics = lyrics["text"]
 
         # Call sentiment-analysis service
         await update_pipeline_status(pipeline, PipelineStatus.RUNNING_SENTIMENT, "whisper", lyrics)
