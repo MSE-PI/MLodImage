@@ -10,7 +10,7 @@ import os
 DOCKER_REGISTRY: str = "-"
 SERVICE_NAMESPACE: str = "-"
 GPU_CORE: str = "tencent.com/vcuda-core: 20"
-GPU_MEMORY: str = "tencent.com/vcuda-memory: 64"
+GPU_MEMORY: str = "tencent.com/vcuda-memory: 16"
 FRONTEND_PATH: str = "../frontend/MLodImage/"
 FRONTEND_DIR_NAME: str = "MLodImage"
 ORCHESTRATOR_PATH: str = "../orchestrator/fastapi/"
