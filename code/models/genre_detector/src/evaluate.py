@@ -74,7 +74,7 @@ def main():
     test_loader = DataLoader(test_dataset, batch_size=TEST_PARAMS['batch_size'], shuffle=False, num_workers=TEST_PARAMS['nb_workers'])
 
     with Live(dir='dvc_logs', report='html') as live:
-        model = AudioCNN.load_from_checkpoint(os.path.join(os.getcwd(), 'src', 'model', 'model.ckpt'), nb_classes=NB_CLASSES)
+        model = AudioCNN.load_from_checkpoint(os.path.join(os.getcwd(), 'src', 'model', 'model.ckpt'))
         model.eval()
 
         # evaluation

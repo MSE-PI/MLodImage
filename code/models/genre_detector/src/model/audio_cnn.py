@@ -8,7 +8,7 @@ class AudioCNN(pl.LightningModule):
     """
     Audio classification model.
     """
-    def __init__(self, lr, nb_channels, nb_classes):
+    def __init__(self, nb_channels, nb_classes, lr=0.001):
         """
         Constructor.
         :param nb_channels: the number of channels in the input data

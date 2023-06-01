@@ -80,8 +80,7 @@ class MyService(Service):
         # load the model
         torch.cuda.is_available()  # Check if NVIDIA GPU is available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = AudioCNN(nb_channels=AUDIO_PARAMS["nb_channels"], nb_classes=len(self.mapping))
-        self.model.load_from_checkpoint("model/model.ckpt")
+        self.model = AudioCNN.load_from_checkpoint("model/model.ckpt")
         self.model.to(self.device)
         self.model.eval()
         print("Model loaded successfully, running on device: " + str(self.device))
