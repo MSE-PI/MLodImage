@@ -35,8 +35,6 @@ from model.audio_utils import AudioUtils
 import yaml
 import torch
 import os
-from minio import Minio
-from datetime import datetime
 from pydub import AudioSegment
 
 # support audio : wav, mpeg, m4a, ogg
@@ -46,6 +44,17 @@ AUDIO_PARAMS = yaml.safe_load(open("params.yaml"))['audio']
 CURRENT_PATH = os.getcwd()
 settings = get_settings()
 
+# load json file containing the mapping between the genre and the index
+with open('model/id_to_label.json') as f:
+    mapping = json.load(f)
+
+# load the model
+torch.cuda.is_available()  # Check if NVIDIA GPU is available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = AudioCNN.load_from_checkpoint("model/model.ckpt")
+model.to(device)
+model.eval()
+print("Model loaded successfully, running on device: " + str(device))
 
 class MyService(Service):
     """
@@ -70,20 +79,20 @@ class MyService(Service):
             ],
             data_out_fields=[
                 FieldDescription(name="result", type=[FieldDescriptionType.APPLICATION_JSON]),
-            ]
+            ],
+            tags=[
+                ExecutionUnitTag(
+                    name=ExecutionUnitTagName.NEURAL_NETWORKS,
+                    acronym=ExecutionUnitTagAcronym.NEURAL_NETWORKS
+                ),
+            ],
         )
 
-        # load json file containing the mapping between the genre and the index
-        with open('model/id_to_label.json') as f:
-            self.mapping = json.load(f)
+        global mapping, model, device
 
-        # load the model
-        torch.cuda.is_available()  # Check if NVIDIA GPU is available
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = AudioCNN.load_from_checkpoint("model/model.ckpt")
-        self.model.to(self.device)
-        self.model.eval()
-        print("Model loaded successfully, running on device: " + str(self.device))
+        self.mapping = mapping
+        self.model = model
+        self.device = device
 
     def process(self, data):
         # load and preprocess the audio file

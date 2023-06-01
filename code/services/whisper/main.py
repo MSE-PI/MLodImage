@@ -93,7 +93,7 @@ class MyService(Service):
 
         return {
             "result": TaskData(
-                data=result.text,
+                data=result["text"],
                 type=FieldDescriptionType.APPLICATION_JSON
             )
         }
