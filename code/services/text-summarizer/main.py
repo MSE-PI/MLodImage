@@ -66,7 +66,7 @@ class MyService(Service):
 
         # Run the model
         result = classifier(text, max_length=100, min_length=5, do_sample=False)
-        
+
         # Convert the result to bytes
         file_bytes = result[0]["summary_text"].encode("utf-8")
 
@@ -83,7 +83,7 @@ Summarize the given text.
 """
 
 api_description = """
-Summarize the given text using the HuggingFace transformers library.
+Summarize the given text using the HuggingFace transformers library with model bart-large-cnn-samsum.
 """
 
 # Define the FastAPI application with information

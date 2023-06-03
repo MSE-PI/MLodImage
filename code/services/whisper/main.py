@@ -105,8 +105,7 @@ Transcribe any audio file to text
 """
 
 api_description = """
-Transcribe any audio file to text. Returns a JSON object with the following fields:
-- `transcription`: the text extracted from the audio file
+Transcribe any audio file to text. Returns the text plain transcription of the audio file.
 """
 
 # Define the FastAPI application with information

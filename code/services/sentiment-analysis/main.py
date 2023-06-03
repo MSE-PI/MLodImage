@@ -195,7 +195,7 @@ class MyService(Service):
 
 
 api_summary = """
-Analyze sentiment of a given text.
+Analyze sentiment and emotions of a given text.
 """
 
 api_description = """
