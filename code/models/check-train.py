@@ -23,7 +23,7 @@ def get_modified_files() -> list:
     # keep only the files
     modified_files = list(map(lambda x: x.split("/"), modified_files))
 
-    return modified_files[0]
+    return modified_files[0] if len(modified_files) > 0 else []
 
 
 def main():

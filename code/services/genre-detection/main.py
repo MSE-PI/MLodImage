@@ -55,6 +55,7 @@ model = AudioCNN.load_from_checkpoint("model/model.ckpt", map_location=device)
 model.eval()
 print("Model loaded successfully, running on device: " + str(device))
 
+
 class MyService(Service):
     """
     Musical genre detection service model.

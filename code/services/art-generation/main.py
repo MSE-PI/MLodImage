@@ -201,7 +201,7 @@ This service generates art from lyrics and music style.
 """
 
 api_description = """
-Generate art from lyrics and music style. Returns a JSON object with the following fields:
+Generate art from lyrics and music style. Returns several images:
 - `image1`: the first generated image 
 - `image2`: the second generated image
 - `image3`: the third generated image

@@ -10,7 +10,7 @@
         {
           "name": "audio",
           "type": [
-            "audio/mp3",
+            "audio/mpeg",
             "audio/ogg"
           ]
         }
@@ -19,7 +19,7 @@
         {
           "name": "result",
           "type": [
-            "application/json"
+            "text/plain"
           ]
         }
       ],
@@ -71,7 +71,7 @@
         {
           "name": "audio",
           "type": [
-            "audio/mp3",
+            "audio/mpeg",
             "audio/ogg"
           ]
         }
@@ -82,6 +82,12 @@
           "type": [
             "application/json"
           ]
+        }
+      ],
+      "tags": [
+        {
+          "name": "Neural Networks",
+          "acronym": "NN"
         }
       ],
       "url": "https://genre-detection-mlodimage.kube.isc.heia-fr.ch"
