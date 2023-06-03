@@ -88,6 +88,7 @@ class MyService(Service):
                 f.write(audio)
                 # Do the speech recognition
                 result = my_service.model.transcribe(f.name)
+                print("Transcription: " + result["text"])
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
@@ -213,5 +214,5 @@ async def process(audio: UploadFile = File(...)):
     # call service to process audio
     result = MyService().process({"audio": TaskData(data=audio_bytes, type=AUDIO_TYPE)})
     # Return the result
-    data = json.loads(result["result"].data)
+    data = result["result"].data
     return data
