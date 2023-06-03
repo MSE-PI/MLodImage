@@ -9,8 +9,9 @@ import os
 
 DOCKER_REGISTRY: str = "-"
 SERVICE_NAMESPACE: str = "-"
-GPU_CORE: str = "tencent.com/vcuda-core: 20"
-GPU_MEMORY: str = "tencent.com/vcuda-memory: 64"
+GPU_CORE: str = "tencent.com/vcuda-core: 20"  # use 20% of a all GPU cores available
+GPU_MEMORY: str = "tencent.com/vcuda-memory: "
+DEFAULT_GPU_MEMORY: str = "4"  # default GPU memory in tranches of 256 MiB
 FRONTEND_PATH: str = "../frontend/MLodImage/"
 FRONTEND_DIR_NAME: str = "MLodImage"
 ORCHESTRATOR_PATH: str = "../orchestrator/fastapi/"
@@ -21,7 +22,6 @@ SERVICES_PORT: int = 8000
 
 def main():
     global DOCKER_REGISTRY, SERVICE_NAMESPACE
-    print("ROOT:" + os.environ["REPO_ROOT"])
     # read environment variables
     DOCKER_REGISTRY = os.environ["DOCKER_REGISTRY"]
     SERVICE_NAMESPACE = os.environ["NAMESPACE"]
@@ -121,8 +121,12 @@ def deploy_service(service_dir: str) -> None:
     if os.path.isfile(f"{service_dir}/.gpu"):
         # set GPU ENV variables
         print("GPU on : " + service_name)
+        # get values from .gpu file
+        gpu_mem = int(os.popen(f"cat {service_dir}/.gpu").read().strip())
+        if gpu_mem < 1:
+            gpu_mem = DEFAULT_GPU_MEMORY
         os.environ["GPU_CORE"] = GPU_CORE
-        os.environ["GPU_MEMORY"] = GPU_MEMORY
+        os.environ["GPU_MEMORY"] = GPU_MEMORY + str(gpu_mem)
     else:
         os.environ["GPU_CORE"] = ""
         os.environ["GPU_MEMORY"] = ""

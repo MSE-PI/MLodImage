@@ -37,7 +37,7 @@ import torch
 import os
 from pydub import AudioSegment
 
-# support audio : wav, mpeg, m4a, ogg
+# support audio : mpeg, ogg
 AUDIO_SUPPORTED = ["audio/mpeg", "audio/ogg"]
 AUDIO_PARAMS = yaml.safe_load(open("params.yaml"))['audio']
 
@@ -51,8 +51,7 @@ with open('model/id_to_label.json') as f:
 # load the model
 torch.cuda.is_available()  # Check if NVIDIA GPU is available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = AudioCNN.load_from_checkpoint("model/model.ckpt")
-model.to(device)
+model = AudioCNN.load_from_checkpoint("model/model.ckpt", map_location=device)
 model.eval()
 print("Model loaded successfully, running on device: " + str(device))
 
