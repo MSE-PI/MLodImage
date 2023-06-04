@@ -105,7 +105,7 @@ Transcribe any audio file to text
 """
 
 api_description = """
-Transcribe any audio file to text. Returns the text plain transcription of the audio file.
+Transcribe any audio file to text. Returns the transcription of the audio file as a string.
 """
 
 # Define the FastAPI application with information
