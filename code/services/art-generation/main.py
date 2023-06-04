@@ -197,7 +197,7 @@ class MyService(Service):
 
 
 api_summary = """
-This service generates art from lyrics and music style.
+This service generates art from lyrics and music style with different models.
 """
 
 api_description = """
