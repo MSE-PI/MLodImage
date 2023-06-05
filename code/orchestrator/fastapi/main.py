@@ -261,7 +261,7 @@ async def run_pipeline():
         image_data = {
             "lyrics_analysis": sentiment_analysis,
             "music_style": {
-                "style": music_style["genre_top"],
+                "genre_top": music_style["genre_top"],
             }
         }
         response = requests.post(ART_GENERATION_URL + SERVICE_ROUTE, json=image_data)
