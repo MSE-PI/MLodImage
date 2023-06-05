@@ -34,7 +34,7 @@ from io import BytesIO
 
 settings = get_settings()
 loaded = False
-model_ids = ['stabilityai/stable-diffusion-2-base','prompthero/openjourney', './music-cover']
+model_ids = ['stabilityai/stable-diffusion-2-base', 'prompthero/openjourney', './music-cover']
 guidance_scale = 5
 nb_steps = 50
 nb_images_per_model = 1
@@ -50,6 +50,7 @@ def build_pipeline_from_model_id(model_id):
     pipe = pipe.to("cuda")
     return pipe, compel
 
+
 def build_model_from_ckpt(ckpt_path, model_id):
     pipe = download_from_original_stable_diffusion_ckpt(
         checkpoint_path=ckpt_path,
@@ -61,10 +62,11 @@ def build_model_from_ckpt(ckpt_path, model_id):
 
 def prompt_builder(lyrics_infos, music_style):
     print("Building prompt...")
-    print(music_style["style"])
+    print(music_style["genre_top"])
     print(lyrics_infos["top_words"])
 
-    prompt = f'An album cover in style of {music_style["style"]} without any text and containing the following themes:'
+    prompt = f'An album cover in style of {music_style["genre_top"]} ' \
+             f'without any text and containing the following themes:'
     for i, word in enumerate(lyrics_infos["top_words"]):
         if i == 0:
             prompt += f' {word}++++++'
@@ -75,6 +77,7 @@ def prompt_builder(lyrics_infos, music_style):
         else:
             prompt += f', {word}'
     return prompt
+
 
 def initialize_service():
     """
@@ -99,6 +102,7 @@ def initialize_service():
         compels.append(compel)
 
     loaded = True
+
 
 class MyService(Service):
     """
@@ -234,12 +238,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Redirect to docs
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse("/docs", status_code=301)
 
+
 service_service: ServiceService | None = None
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -368,10 +375,10 @@ async def test(model_id: str, prompt: str, negative_prompts: str, nb_steps: int,
 
     print("Image generation...")
     images = pipe(prompt_embeds=prompt_embeds,
-               num_inference_steps=nb_steps,
-               guidance_scale=guidance_scale,
-               negative_prompt_embeds=negative_prompts_embeds,
-               ).images
+                  num_inference_steps=nb_steps,
+                  guidance_scale=guidance_scale,
+                  negative_prompt_embeds=negative_prompts_embeds,
+                  ).images
 
     print("Image processing...")
     result = BytesIO()
