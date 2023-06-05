@@ -142,13 +142,13 @@ class MyService(Service):
         print("Data processing...")
 
         lyrics_analysis = json.loads(data["lyrics_analysis"].data)
-        print(lyrics_analysis)
+        print(f"Lyrics analysis: {lyrics_analysis}")
 
         music_style = json.loads(data["music_style"].data)
-        print(music_style)
+        print(f"Music style: {music_style}")
 
         prompt = prompt_builder(lyrics_analysis, music_style)
-        print(prompt)
+        print(f"Prompt: {prompt}")
 
         all_cover_images = []
         for i in range(len(pipes)):
