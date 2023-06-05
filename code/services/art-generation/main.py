@@ -305,7 +305,7 @@ class LyricsAnalysis(BaseModel):
 
 
 class MusicStyle(BaseModel):
-    style: str
+    genre_top: str
 
 
 class Data(BaseModel):
