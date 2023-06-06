@@ -1,7 +1,7 @@
 import asyncio
 import json
 import time
-from fastapi import FastAPI, Form
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from common_code.config import get_settings
@@ -14,8 +14,10 @@ from common_code.storage.service import StorageService
 from common_code.tasks.controller import router as tasks_router
 from common_code.tasks.service import TasksService
 from common_code.tasks.models import TaskData
-from common_code.service.models import Service, FieldDescription
-from common_code.service.enums import ServiceStatus, FieldDescriptionType
+from common_code.service.models import Service
+from common_code.service.enums import ServiceStatus
+from common_code.common.enums import FieldDescriptionType, ExecutionUnitTagName, ExecutionUnitTagAcronym
+from common_code.common.models import FieldDescription, ExecutionUnitTag
 
 # Model specific imports
 import spacy
@@ -149,15 +151,21 @@ class MyService(Service):
             ],
             data_out_fields=[
                 FieldDescription(name="result", type=[FieldDescriptionType.APPLICATION_JSON]),
-            ]
+            ],
+            tags=[
+                ExecutionUnitTag(
+                    name=ExecutionUnitTagName.SENTIMENT_ANALYSIS,
+                    acronym=ExecutionUnitTagAcronym.SENTIMENT_ANALYSIS,
+                ),
+            ],
         )
 
     def process(self, data):
         # Get the text to analyze from storage
         text = data["text"].data
-        # bytes to string
+        # Convert bytes to string
         text = text.decode("utf-8")
-
+        # Get the language and sentiments
         language, sentiments = get_metadata(text)
         top_words = get_top_n(get_text_tf_idf_score(text), 10)
 
@@ -187,7 +195,7 @@ class MyService(Service):
 
 
 api_summary = """
-Analyze sentiment of a given text.
+Analyze sentiment and emotions of a given text.
 """
 
 api_description = """
@@ -240,7 +248,6 @@ class Data(BaseModel):
 
 @app.post("/process", tags=['Process'])
 def handle_process(data: Data):
-    print(data.text)
     result = MyService().process({"text": TaskData(data=data.text, type=FieldDescriptionType.TEXT_PLAIN)})
 
     data = json.loads(result["result"].data)
@@ -269,17 +276,17 @@ async def startup_event():
     tasks_service.start()
 
     async def announce():
-        # TODO: enhance this to allow multiple engines to be used
-        announced = False
-
         retries = settings.engine_announce_retries
-        while not announced and retries > 0:
-            announced = await service_service.announce_service(my_service)
-            retries -= 1
-            if not announced:
-                time.sleep(settings.engine_announce_retry_delay)
-                if retries == 0:
-                    logger.warning(f"Aborting service announcement after {settings.engine_announce_retries} retries")
+        for engine_url in settings.engine_urls:
+            announced = False
+            while not announced and retries > 0:
+                announced = await service_service.announce_service(my_service, engine_url)
+                retries -= 1
+                if not announced:
+                    time.sleep(settings.engine_announce_retry_delay)
+                    if retries == 0:
+                        logger.warning(f"Aborting service announcement after "
+                                       f"{settings.engine_announce_retries} retries")
 
     # Announce the service to its engine
     asyncio.ensure_future(announce())
@@ -290,4 +297,5 @@ async def shutdown_event():
     # Global variable
     global service_service
     my_service = MyService()
-    await service_service.graceful_shutdown(my_service)
+    for engine_url in settings.engine_urls:
+        await service_service.graceful_shutdown(my_service, engine_url)

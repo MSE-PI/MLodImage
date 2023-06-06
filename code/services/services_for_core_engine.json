@@ -1,0 +1,150 @@
+{
+  "services": [
+    {
+      "name": "Whisper",
+      "slug": "whisper",
+      "summary": "Speech to text",
+      "description": "Whisper is a speech to text API that allows you to convert audio to text in real time. It supports multiple languages and accents.",
+      "status": "available",
+      "data_in_fields": [
+        {
+          "name": "audio",
+          "type": [
+            "audio/mpeg",
+            "audio/ogg"
+          ]
+        }
+      ],
+      "data_out_fields": [
+        {
+          "name": "result",
+          "type": [
+            "text/plain"
+          ]
+        }
+      ],
+      "tags": [
+        {
+          "name": "Speech Recognition",
+          "acronym": "SR"
+        }
+      ],
+      "url": "https://whisper-mlodimage.kube.isc.heia-fr.ch"
+    },
+    {
+      "name": "Sentiment Analysis",
+      "slug": "sentiment-analysis",
+      "summary": "Analyse the sentiment of a text",
+      "description": "Sentiment Analysis is a text analysis API that allows you to analyse the sentiment of a text. Returns the emotions and top 10 words.",
+      "status": "available",
+      "data_in_fields": [
+        {
+          "name": "text",
+          "type": [
+            "text/plain"
+          ]
+        }
+      ],
+      "data_out_fields": [
+        {
+          "name": "result",
+          "type": [
+            "application/json"
+          ]
+        }
+      ],
+      "tags": [
+        {
+          "name": "Sentiment Analysis",
+          "acronym": "SA"
+        }
+      ],
+      "url": "https://sentiment-analysis-mlodimage.kube.isc.heia-fr.ch"
+    },
+    {
+      "name": "Genre Detection",
+      "slug": "genre-detection",
+      "summary": "Detect the style of a music",
+      "description": "Genre Detection is a music analysis API that allows you to detect the style of a music. Returns the top genre and the confidence for each genre.",
+      "status": "available",
+      "data_in_fields": [
+        {
+          "name": "audio",
+          "type": [
+            "audio/mpeg",
+            "audio/ogg"
+          ]
+        }
+      ],
+      "data_out_fields": [
+        {
+          "name": "result",
+          "type": [
+            "application/json"
+          ]
+        }
+      ],
+      "tags": [
+        {
+          "name": "Neural Networks",
+          "acronym": "NN"
+        }
+      ],
+      "url": "https://genre-detection-mlodimage.kube.isc.heia-fr.ch"
+    },
+    {
+      "name": "Art Generation",
+      "slug": "art-generation",
+      "summary": "Generate art image(s)",
+      "description": "Art Generation is an image generation API that allows you to generate an art image (album cover). Returns 3 generated images.",
+      "status": "available",
+      "data_in_fields": [
+        {
+          "name": "lyrics_analysis",
+          "type": [
+            "application/json"
+          ]
+        },
+        {
+          "name": "music_style",
+          "type": [
+            "application/json"
+          ]
+        }
+      ],
+      "data_out_fields": [
+        {
+            "name": "image1",
+            "type": [
+              "image/png"
+            ]
+        },
+        {
+            "name": "image2",
+            "type": [
+              "image/png"
+            ]
+        },
+        {
+            "name": "image3",
+            "type": [
+              "image/png"
+            ]
+        },
+        {
+          "name": "metadata",
+          "type": [
+            "application/json"
+          ]
+        }
+      ],
+      "tags": [
+        {
+          "name": "Image Processing",
+          "acronym": "IP"
+        }
+      ],
+      "url": "https://art-generation-mlodimage.kube.isc.heia-fr.ch"
+    }
+  ]
+}

@@ -9,8 +9,9 @@ import os
 
 DOCKER_REGISTRY: str = "-"
 SERVICE_NAMESPACE: str = "-"
-GPU_CORE: str = "tencent.com/vcuda-core: 20"
-GPU_MEMORY: str = "tencent.com/vcuda-memory: 64"
+GPU_CORE: str = "tencent.com/vcuda-core: 20"  # use 20% of a all GPU cores available
+GPU_MEMORY: str = "tencent.com/vcuda-memory: "
+DEFAULT_GPU_MEMORY: str = "4"  # default GPU memory in tranches of 256 MiB
 FRONTEND_PATH: str = "../frontend/MLodImage/"
 FRONTEND_DIR_NAME: str = "MLodImage"
 ORCHESTRATOR_PATH: str = "../orchestrator/fastapi/"
@@ -65,6 +66,12 @@ def discover_services() -> None:
         if os.path.isdir(service):
             # check if the service has a Dockerfile and is in the list of modified services
             if os.path.isfile(f"{service}/Dockerfile") and service in modified_services:
+                # check if the service has a pre-script to run before building the docker image
+                if os.path.isfile(f"{service}/pre.sh"):
+                    print(f"Running pre-script for {service}...")
+                    status = os.system(f"sh {service}/pre.sh")
+                    if status != 0:
+                        raise Exception(f"Error while running pre-script for {service}")
                 docker_build(service)
                 if os.path.isfile(f"{service}/.build-only"):
                     print(f"Skipping deployment of {service}")
@@ -114,8 +121,12 @@ def deploy_service(service_dir: str) -> None:
     if os.path.isfile(f"{service_dir}/.gpu"):
         # set GPU ENV variables
         print("GPU on : " + service_name)
+        # get values from .gpu file
+        gpu_mem = int(os.popen(f"cat {service_dir}/.gpu").read().strip())
+        if gpu_mem < 1:
+            gpu_mem = DEFAULT_GPU_MEMORY
         os.environ["GPU_CORE"] = GPU_CORE
-        os.environ["GPU_MEMORY"] = GPU_MEMORY
+        os.environ["GPU_MEMORY"] = GPU_MEMORY + str(gpu_mem)
     else:
         os.environ["GPU_CORE"] = ""
         os.environ["GPU_MEMORY"] = ""

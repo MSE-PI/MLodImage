@@ -5,7 +5,7 @@ name: train-model-workflow
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "feature_mlops" ]
+    branches: [ "develop" ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -70,19 +70,6 @@ jobs:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
         run: |
            kubectl delete jobs -n $NAMESPACE --field-selector status.successful=1   
-
-      # - name: Create Pull Request
-      #   uses: vsoch/pull-request-action@master
-      #   if: ${{ steps.model-check.outputs.return-code == 1 }}
-      #   with:
-      #     commit-message: "Update model"
-      #     title: "Apply model changes"
-      #     body: "This PR was automatically created by the train-model-workflow"
-      #     branch: ${{ vars.TRAIN_BRANCH }}
-      #     delete-branch: false
-      #     base: "main"
-      #     reviewers: "aptrc, hofmannflorian, bigthib0"
-      #     assignees: "ben-jy"
 
       - name: Create Pull Request
         if: ${{ steps.model-check.outputs.return-code == 1 }}

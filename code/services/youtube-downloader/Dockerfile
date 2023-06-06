@@ -14,16 +14,10 @@ WORKDIR /app
 COPY ./requirements.txt /app/requirements.txt
 
 # install packages from requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
-# download spacy model
-RUN python3 -m spacy download en_core_web_sm
-
-# download nltk data
-RUN python -c "import nltk;nltk.download('averaged_perceptron_tagger')"
-RUN python -c "import nltk;nltk.download('punkt')"
-RUN python -c "import nltk;nltk.download('vader_lexicon')"
-RUN python -c "import nltk;nltk.download('stopwords')"
+# replace cipher.py file in pytube library to fix regex error https://github.com/pytube/pytube/pull/1646
+COPY ./cipher.py /usr/local/lib/python3.10/site-packages/pytube/cipher.py
 
 # copy all the files
 COPY . /app

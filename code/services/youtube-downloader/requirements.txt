@@ -1,3 +1,2 @@
 common-code[test] @ git+https://github.com/csia-pme/csia-pme.git@main#subdirectory=common-code
-torch~=2.0.0
-python-multipart~=0.0.6
+pytube==15.0.0

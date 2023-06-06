@@ -1,17 +1,8 @@
-"""
-File containing FastAPI routes & start.
-
-To install whisper, run: pip install git+https://github.com/openai/whisper.git
-
-"""
-
-# Common import
 import asyncio
-import json
 import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
 from common_code.config import get_settings
 from pydantic import Field
 from common_code.http_client import HttpClient
@@ -27,24 +18,39 @@ from common_code.service.enums import ServiceStatus
 from common_code.common.enums import FieldDescriptionType, ExecutionUnitTagName, ExecutionUnitTagAcronym
 from common_code.common.models import FieldDescription, ExecutionUnitTag
 
-# service specific imports
-import os
-import torch
-import whisper
-from tempfile import NamedTemporaryFile
-from fastapi import UploadFile, File, HTTPException
-from whisper import Whisper
+# Model specific imports
+import re
+import tempfile
+from io import BytesIO
+from pytube import YouTube
+from fastapi.exceptions import HTTPException
+
+
+def youtube2mp3(url):
+    try:
+        # Url input from user
+        yt = YouTube(url)
+        # Extract audio with 160kbps quality from video
+        video_bytes = BytesIO()
+        video = yt.streams.filter(only_audio=True).first()
+
+        # Download the file
+        video.stream_to_buffer(video_bytes)
+        video_bytes.seek(0)
+        file = video_bytes
+
+        return file
+    except Exception as e:
+        print(e)
+        return None
+
 
 settings = get_settings()
-
-model: Whisper
-audio_supported = ["audio/mpeg", "audio/ogg"]
-current_path: str = os.getcwd()
 
 
 class MyService(Service):
     """
-    Whisper service model
+    YouTube downloader service
     """
 
     # Any additional fields must be excluded for Pydantic to work
@@ -52,65 +58,62 @@ class MyService(Service):
 
     def __init__(self):
         super().__init__(
-            name="Whisper",
-            slug="Whisper",
+            name="Youtube Downloader",
+            slug="youtube-downloader",
             url=settings.service_url,
             summary=api_summary,
             description=api_description,
             status=ServiceStatus.AVAILABLE,
             data_in_fields=[
-                FieldDescription(name="audio", type=[FieldDescriptionType.AUDIO_MP3, FieldDescriptionType.AUDIO_OGG]),
+                FieldDescription(name="url", type=[FieldDescriptionType.TEXT_PLAIN]),
             ],
             data_out_fields=[
-                FieldDescription(name="result", type=[FieldDescriptionType.TEXT_PLAIN]),
+                FieldDescription(name="result", type=[FieldDescriptionType.AUDIO_MP3]),
             ],
             tags=[
                 ExecutionUnitTag(
-                    name=ExecutionUnitTagName.SPEECH_RECOGNITION,
-                    acronym=ExecutionUnitTagAcronym.SPEECH_RECOGNITION
+                    name=ExecutionUnitTagName.DATA_PREPROCESSING,
+                    acronym=ExecutionUnitTagAcronym.DATA_PREPROCESSING
                 ),
-            ],
+            ]
         )
 
-        # load the model :
-        torch.cuda.is_available()  # Check if NVIDIA GPU is available
-        DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-        # Load the ML model
-        self.model = whisper.load_model("base", device=DEVICE)
-        print("Model loaded successfully, running on device: " + DEVICE)
-
     def process(self, data):
-        # Get
-        audio = data["audio"].data
-        # Save the audio file to the audio folder
-        try:
-            with NamedTemporaryFile(dir="./audio/", delete=True) as f:
-                f.write(audio)
-                # Do the speech recognition
-                result = my_service.model.transcribe(f.name)
-                print("Transcription: " + result["text"])
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+        # Get the text to analyze from storage
+        text = data["url"].data
+        # Convert bytes to string
+        text = text.decode("utf-8")
 
+        # Check if the text is a URL and domain name is youtube.com
+        if not re.match(
+                "^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$",
+                text
+        ):
+            raise Exception("Invalid URL, use a youtube.com URL")
+
+        file: BytesIO = youtube2mp3(text)
+        if not file:
+            raise Exception("Download failed.")
+        file_bytes = file.read()
         return {
             "result": TaskData(
-                data=result["text"],
-                type=FieldDescriptionType.TEXT_PLAIN
+                data=file_bytes,
+                type=FieldDescriptionType.AUDIO_MP3
             )
         }
 
 
 api_summary = """
-Transcribe any audio file to text
+Download a youtube video to mp3.
 """
 
 api_description = """
-Transcribe any audio file to text. Returns the transcription of the audio file as a string.
+Use the given URL to download the video from youtube.com and convert it to mp3 format.
 """
 
 # Define the FastAPI application with information
 app = FastAPI(
-    title="Whisper API.",
+    title="Youtube downloader API.",
     description=api_description,
     version="0.0.1",
     swagger_ui_parameters={
@@ -122,6 +125,11 @@ app = FastAPI(
         "url": "https://choosealicense.com/licenses/agpl-3.0/",
     },
 )
+
+# Include routers from other files
+app.include_router(service_router, tags=['Service'])
+app.include_router(tasks_router, tags=['Tasks'])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -129,10 +137,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Include routers from other files
-app.include_router(service_router, tags=['Service'])
-app.include_router(tasks_router, tags=['Tasks'])
 
 
 # Redirect to docs
@@ -142,7 +146,18 @@ async def root():
 
 
 service_service: ServiceService | None = None
-my_service: MyService | None = None
+
+
+@app.post("/process", tags=['Process'], response_class=FileResponse)
+def handle_process(url: str):
+    try:
+        result = MyService().process({"url": TaskData(data=url, type=FieldDescriptionType.TEXT_PLAIN)})
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_file.write(result["result"].data)
+            temp_file.flush()
+            return FileResponse(temp_file.name, media_type="audio/mpeg", filename="result.mp3")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.on_event("startup")
@@ -152,7 +167,7 @@ async def startup_event():
     # https://github.com/tiangolo/fastapi/issues/425
 
     # Global variable
-    global service_service, my_service
+    global service_service
 
     logger = get_logger(settings)
     http_client = HttpClient()
@@ -190,28 +205,3 @@ async def shutdown_event():
     my_service = MyService()
     for engine_url in settings.engine_urls:
         await service_service.graceful_shutdown(my_service, engine_url)
-
-
-@app.post('/process', tags=['Process'])
-async def process(audio: UploadFile = File(...)):
-    """
-    Route to do the speech recognition on the audio file given in the request
-    """
-    # Check if audio file is given
-    if audio is None:
-        raise HTTPException(status_code=400, detail="No audio file given")
-    # Check if audio file is valid
-    if audio.content_type not in audio_supported:
-        raise HTTPException(status_code=400, detail="Invalid audio file given")
-    # Get audio file type
-    if audio.content_type == "audio/mpeg":
-        AUDIO_TYPE = FieldDescriptionType.AUDIO_MP3
-    else:
-        AUDIO_TYPE = FieldDescriptionType.AUDIO_OGG
-    # convert audio to bytes
-    audio_bytes = await audio.read()
-    # call service to process audio
-    result = MyService().process({"audio": TaskData(data=audio_bytes, type=AUDIO_TYPE)})
-    # Return the result
-    data = result["result"].data
-    return data

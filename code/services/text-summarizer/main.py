@@ -1,19 +1,10 @@
-"""
-File containing FastAPI routes & start.
-
-To install whisper, run: pip install git+https://github.com/openai/whisper.git
-
-"""
-
-# Common import
 import asyncio
-import json
 import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from common_code.config import get_settings
-from pydantic import Field
+from pydantic import Field, BaseModel
 from common_code.http_client import HttpClient
 from common_code.logger.logger import get_logger
 from common_code.service.controller import router as service_router
@@ -27,24 +18,16 @@ from common_code.service.enums import ServiceStatus
 from common_code.common.enums import FieldDescriptionType, ExecutionUnitTagName, ExecutionUnitTagAcronym
 from common_code.common.models import FieldDescription, ExecutionUnitTag
 
-# service specific imports
-import os
-import torch
-import whisper
-from tempfile import NamedTemporaryFile
-from fastapi import UploadFile, File, HTTPException
-from whisper import Whisper
+# Model specific imports
+from transformers import pipeline
 
+classifier = pipeline("summarization", model="philschmid/bart-large-cnn-samsum")
 settings = get_settings()
-
-model: Whisper
-audio_supported = ["audio/mpeg", "audio/ogg"]
-current_path: str = os.getcwd()
 
 
 class MyService(Service):
     """
-    Whisper service model
+    Text summarizer service model
     """
 
     # Any additional fields must be excluded for Pydantic to work
@@ -52,65 +35,60 @@ class MyService(Service):
 
     def __init__(self):
         super().__init__(
-            name="Whisper",
-            slug="Whisper",
+            name="Text Summarizer",
+            slug="text-summarizer",
             url=settings.service_url,
             summary=api_summary,
             description=api_description,
             status=ServiceStatus.AVAILABLE,
             data_in_fields=[
-                FieldDescription(name="audio", type=[FieldDescriptionType.AUDIO_MP3, FieldDescriptionType.AUDIO_OGG]),
+                FieldDescription(name="text", type=[FieldDescriptionType.TEXT_PLAIN]),
             ],
             data_out_fields=[
-                FieldDescription(name="result", type=[FieldDescriptionType.TEXT_PLAIN]),
+                FieldDescription(name="summarized_text", type=[FieldDescriptionType.TEXT_PLAIN]),
             ],
             tags=[
                 ExecutionUnitTag(
-                    name=ExecutionUnitTagName.SPEECH_RECOGNITION,
-                    acronym=ExecutionUnitTagAcronym.SPEECH_RECOGNITION
+                    name=ExecutionUnitTagName.NATURAL_LANGUAGE_PROCESSING,
+                    acronym=ExecutionUnitTagAcronym.NATURAL_LANGUAGE_PROCESSING
                 ),
-            ],
+            ]
         )
 
-        # load the model :
-        torch.cuda.is_available()  # Check if NVIDIA GPU is available
-        DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-        # Load the ML model
-        self.model = whisper.load_model("base", device=DEVICE)
-        print("Model loaded successfully, running on device: " + DEVICE)
-
     def process(self, data):
-        # Get
-        audio = data["audio"].data
-        # Save the audio file to the audio folder
-        try:
-            with NamedTemporaryFile(dir="./audio/", delete=True) as f:
-                f.write(audio)
-                # Do the speech recognition
-                result = my_service.model.transcribe(f.name)
-                print("Transcription: " + result["text"])
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+        # Get the text to analyze from storage
+        text = data["text"].data
+        # Convert bytes to string
+        text = text.decode("utf-8")
+
+        # Limit the text to 142 words
+        text = " ".join(text.split()[:500])
+
+        # Run the model
+        result = classifier(text, max_length=100, min_length=5, do_sample=False)
+
+        # Convert the result to bytes
+        file_bytes = result[0]["summary_text"].encode("utf-8")
 
         return {
             "result": TaskData(
-                data=result["text"],
+                data=file_bytes,
                 type=FieldDescriptionType.TEXT_PLAIN
             )
         }
 
 
 api_summary = """
-Transcribe any audio file to text
+Summarize the given text.
 """
 
 api_description = """
-Transcribe any audio file to text. Returns the transcription of the audio file as a string.
+Summarize the given text using the HuggingFace transformers library with model bart-large-cnn-samsum.
 """
 
 # Define the FastAPI application with information
 app = FastAPI(
-    title="Whisper API.",
+    title="Text summarizer API.",
     description=api_description,
     version="0.0.1",
     swagger_ui_parameters={
@@ -122,6 +100,11 @@ app = FastAPI(
         "url": "https://choosealicense.com/licenses/agpl-3.0/",
     },
 )
+
+# Include routers from other files
+app.include_router(service_router, tags=['Service'])
+app.include_router(tasks_router, tags=['Tasks'])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -129,10 +112,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Include routers from other files
-app.include_router(service_router, tags=['Service'])
-app.include_router(tasks_router, tags=['Tasks'])
 
 
 # Redirect to docs
@@ -142,7 +121,19 @@ async def root():
 
 
 service_service: ServiceService | None = None
-my_service: MyService | None = None
+
+
+class Data(BaseModel):
+    text: str
+
+
+@app.post("/process", tags=['Process'])
+def handle_process(data: Data):
+    result = MyService().process({"text": TaskData(data=data.text, type=FieldDescriptionType.TEXT_PLAIN)})
+
+    data = result["result"].data.decode("utf-8")
+    print(data)
+    return data
 
 
 @app.on_event("startup")
@@ -152,7 +143,7 @@ async def startup_event():
     # https://github.com/tiangolo/fastapi/issues/425
 
     # Global variable
-    global service_service, my_service
+    global service_service
 
     logger = get_logger(settings)
     http_client = HttpClient()
@@ -190,28 +181,3 @@ async def shutdown_event():
     my_service = MyService()
     for engine_url in settings.engine_urls:
         await service_service.graceful_shutdown(my_service, engine_url)
-
-
-@app.post('/process', tags=['Process'])
-async def process(audio: UploadFile = File(...)):
-    """
-    Route to do the speech recognition on the audio file given in the request
-    """
-    # Check if audio file is given
-    if audio is None:
-        raise HTTPException(status_code=400, detail="No audio file given")
-    # Check if audio file is valid
-    if audio.content_type not in audio_supported:
-        raise HTTPException(status_code=400, detail="Invalid audio file given")
-    # Get audio file type
-    if audio.content_type == "audio/mpeg":
-        AUDIO_TYPE = FieldDescriptionType.AUDIO_MP3
-    else:
-        AUDIO_TYPE = FieldDescriptionType.AUDIO_OGG
-    # convert audio to bytes
-    audio_bytes = await audio.read()
-    # call service to process audio
-    result = MyService().process({"audio": TaskData(data=audio_bytes, type=AUDIO_TYPE)})
-    # Return the result
-    data = result["result"].data
-    return data

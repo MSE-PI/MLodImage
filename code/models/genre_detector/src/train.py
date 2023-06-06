@@ -1,33 +1,32 @@
 from torch.utils.data import DataLoader, Dataset, random_split
 import pytorch_lightning as pl
-from dvclive.lightning import DVCLiveLogger
-from dvclive import Live
-# from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.loggers import WandbLogger
 
 import yaml
-# import wandb
+import wandb
 import pandas as pd
 import os
 import json
+from datetime import datetime
+from model.audio_utils import AudioUtils
+from model.audio_cnn import AudioCNN
 
-from audio_utils import AudioUtils
-from audio_cnn import AudioCNN
-
-
-TRAIN_DATA_DIR: str = os.path.join(os.getcwd(), 'data', 'FMA')
-AUDIO_DIR: str = os.path.join(TRAIN_DATA_DIR, 'fma_reduced')
-
-METADATA: pd.DataFrame = pd.read_csv(os.path.join(TRAIN_DATA_DIR, 'fma_reduced_genres.csv'))
+DATA_DIR: str = os.path.join(os.getcwd(), 'data')
+AUDIO_DIR: str = os.path.join(DATA_DIR, 'raw', 'audio')
+METADATA: pd.DataFrame = pd.read_csv(os.path.join(DATA_DIR, 'prepared', 'train_genres.csv'))
 ID_TO_LABEL: dict = METADATA.set_index('genre_id')['genre_label'].to_dict()
 NB_CLASSES: int = len(ID_TO_LABEL)
 PARAMS = yaml.safe_load(open("params.yaml"))
 TRAIN_PARAMS = PARAMS['train']
 AUDIO_PARAMS = PARAMS['audio']
 
+# set the config for wandb (train params + audio params)
+config = {**TRAIN_PARAMS, **AUDIO_PARAMS}
+wandb.init(project='genre-detector', entity='mlodimage', config=config, name='training_' + datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 class GenreDataset(Dataset):
     """
-    Dataset for the FMA dataset.
+    Genre dataset.
     """
     def __init__(self, df, audio_dir):
         """
@@ -64,7 +63,8 @@ class GenreDataset(Dataset):
         audio = AudioUtils.open(audio_file_path)
         audio = AudioUtils.rechannel(audio, AUDIO_PARAMS['nb_channels'])
         audio = AudioUtils.resample(audio, AUDIO_PARAMS['sample_rate'])
-        audio = AudioUtils.pad_truncate(audio, AUDIO_PARAMS['duration'])
+        audio = AudioUtils.pad_truncate(audio, AUDIO_PARAMS['audio_duration'])
+        audio = AudioUtils.time_shift(audio, AUDIO_PARAMS['time_shift'])
         mel_spectrogram = AudioUtils.mel_spectrogram(audio)
 
         return (mel_spectrogram, genre_id)
@@ -82,11 +82,11 @@ def main():
     val_loader = DataLoader(val_dataset, batch_size=TRAIN_PARAMS['batch_size'], shuffle=False, num_workers=TRAIN_PARAMS['nb_workers'])
 
     # create the model
-    model = AudioCNN(NB_CLASSES)
+    model = AudioCNN(nb_channels=AUDIO_PARAMS['nb_channels'], nb_classes=NB_CLASSES, lr=TRAIN_PARAMS['init_lr'])
 
     # checkpoint callback to save only the best model
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        dirpath=os.getcwd(),
+        dirpath=os.path.join(os.getcwd(), 'src', 'model'),
         save_top_k=1,
         verbose=True,
         monitor='val_loss',
@@ -98,14 +98,19 @@ def main():
         accelerator='auto',
         devices='auto',
         max_epochs=TRAIN_PARAMS['max_epochs'],
+        logger=WandbLogger(),
         callbacks=[checkpoint_callback])
         
     # train the model
     trainer.fit(model, train_loader, val_loader)
 
     # export id_to_label dict
-    with open('id_to_label.json', 'w') as fp:
-        json.dump(ID_TO_LABEL, fp)
+    with open(os.path.join(os.getcwd(), 'src', 'model', 'id_to_label.json'), 'w') as fp:
+        json.dump(ID_TO_LABEL, fp, indent=4)
+
+    # save the url wandb run
+    with open(os.path.join(os.getcwd(), 'wandb_training_url.txt'), 'w') as f:
+        f.write(wandb.run.get_url())
 
 if __name__ == "__main__":
     main()
