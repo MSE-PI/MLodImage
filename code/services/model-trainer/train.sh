@@ -2,6 +2,8 @@
 
 # CLONE AND PULL DATA
 git clone -b develop https://$GIT_USER:$GIT_PASSWORD@github.com/MSE-PI/MLodImage.git app
+# print a message to the console to see if the clone is done
+echo "clone to branch develop done"
 sleep 2  # wait 2 second to be sure that the clone is done and the branch is checked out
 git config --global user.name "Train POD"
 git config --global user.email "pod@train.mlodimage.ch"
