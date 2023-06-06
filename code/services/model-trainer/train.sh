@@ -9,7 +9,7 @@ git config --global user.name "Train POD"
 git config --global user.email "pod@train.mlodimage.ch"
 cd app
 git checkout $TRAIN_BRANCH
-git merge develop --no-edit
+git merge origin/develop --no-edit
 envsubst < .dvc/config > .dvc/config.local
 
 # EXPERIMENT
