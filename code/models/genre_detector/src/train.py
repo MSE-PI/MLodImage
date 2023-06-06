@@ -11,8 +11,6 @@ from datetime import datetime
 from model.audio_utils import AudioUtils
 from model.audio_cnn import AudioCNN
 
-os.environ['WANDB_API_KEY'] = 'bd1669cb234715abd86c4a22de2e756e7013190c'
-
 DATA_DIR: str = os.path.join(os.getcwd(), 'data')
 AUDIO_DIR: str = os.path.join(DATA_DIR, 'raw', 'audio')
 METADATA: pd.DataFrame = pd.read_csv(os.path.join(DATA_DIR, 'prepared', 'train_genres.csv'))
