@@ -1,15 +1,17 @@
 from torch.utils.data import DataLoader, Dataset, random_split
 import pytorch_lightning as pl
-# from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.loggers import WandbLogger
 
 import yaml
-# import wandb
+import wandb
 import pandas as pd
 import os
 import json
+from datetime import datetime
 from model.audio_utils import AudioUtils
 from model.audio_cnn import AudioCNN
 
+os.environ['WANDB_API_KEY'] = 'bd1669cb234715abd86c4a22de2e756e7013190c'
 
 DATA_DIR: str = os.path.join(os.getcwd(), 'data')
 AUDIO_DIR: str = os.path.join(DATA_DIR, 'raw', 'audio')
@@ -20,6 +22,9 @@ PARAMS = yaml.safe_load(open("params.yaml"))
 TRAIN_PARAMS = PARAMS['train']
 AUDIO_PARAMS = PARAMS['audio']
 
+# set the config for wandb (train params + audio params)
+config = {**TRAIN_PARAMS, **AUDIO_PARAMS}
+wandb.init(project='genre-detector', entity='mlodimage', config=config, name='training_' + datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 class GenreDataset(Dataset):
     """
@@ -95,6 +100,7 @@ def main():
         accelerator='auto',
         devices='auto',
         max_epochs=TRAIN_PARAMS['max_epochs'],
+        logger=WandbLogger(),
         callbacks=[checkpoint_callback])
         
     # train the model
@@ -103,6 +109,10 @@ def main():
     # export id_to_label dict
     with open(os.path.join(os.getcwd(), 'src', 'model', 'id_to_label.json'), 'w') as fp:
         json.dump(ID_TO_LABEL, fp, indent=4)
+
+    # save the url wandb run
+    with open(os.path.join(os.getcwd(), 'wandb_training_url.txt'), 'w') as f:
+        f.write(wandb.run.get_url())
 
 if __name__ == "__main__":
     main()
