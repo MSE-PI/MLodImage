@@ -7,12 +7,12 @@ git config --global user.name "Train POD"
 git config --global user.email "pod@train.mlodimage.ch"
 cd app
 git checkout $TRAIN_BRANCH
-git merge feature_mlops --no-edit
+git merge develop --no-edit
 envsubst < .dvc/config > .dvc/config.local
-dvc pull
 
 # EXPERIMENT
 cd /app/code/models/genre_detector
+dvc pull data
 dvc repro
 dvc push
 
