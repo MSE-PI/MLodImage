@@ -11,10 +11,10 @@ spec:
           resources:
             requests:
               tencent.com/vcuda-core: 20
-              tencent.com/vcuda-memory: 4
+              tencent.com/vcuda-memory: 16
             limits:
               tencent.com/vcuda-core: 20
-              tencent.com/vcuda-memory: 4
+              tencent.com/vcuda-memory: 16
           env:
             - name: MINIO_PWD
               valueFrom:
