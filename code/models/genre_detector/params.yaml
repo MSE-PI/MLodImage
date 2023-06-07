@@ -3,8 +3,12 @@ train:
 <<<<<<< HEAD
 =======
   init_lr: 0.001
+<<<<<<< HEAD
 >>>>>>> origin/develop
   max_epochs: 2
+=======
+  max_epochs: 4
+>>>>>>> origin/develop
   val_split: 0.2
   nb_workers: 0 # set to 0 if you get an error
 
