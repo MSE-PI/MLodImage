@@ -48,6 +48,14 @@ jobs:
           
           # move to model folder
           cd code/models/genre_detector
+          
+          # print wandb logs
+          echo "# WandB training logs" > report.md
+          echo >> report.md
+          echo "| **Main** | **Workspace** |" >> report.md
+          echo "|--------|:--------:|" >> report.md
+          echo "| $(git show main:./wandb_training_url.txt) | $(cat wandb_training_url.txt) |" >> report.md
+          echo >> report.md
 
           # Compare parameters to main branch
           echo "# Params workflow vs. main" >> report.md
