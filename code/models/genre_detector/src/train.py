@@ -22,7 +22,7 @@ AUDIO_PARAMS = PARAMS['audio']
 
 # set the config for wandb (train params + audio params)
 config = {**TRAIN_PARAMS, **AUDIO_PARAMS}
-# wandb.init(project='genre-detector', entity='mlodimage', config=config, name='training_' + datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+wandb.init(project='genre-detector', entity='mlodimage', config=config, name='training_' + datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 class GenreDataset(Dataset):
     """
@@ -98,7 +98,7 @@ def main():
         accelerator='auto',
         devices='auto',
         max_epochs=TRAIN_PARAMS['max_epochs'],
-        # logger=WandbLogger(),
+        logger=WandbLogger(),
         callbacks=[checkpoint_callback])
         
     # train the model
@@ -109,8 +109,8 @@ def main():
         json.dump(ID_TO_LABEL, fp, indent=4)
 
     # save the url wandb run
-    # with open(os.path.join(os.getcwd(), 'wandb_training_url.txt'), 'w') as f:
-    #    f.write(wandb.run.get_url())
+    with open(os.path.join(os.getcwd(), 'wandb_training_url.txt'), 'w') as f:
+        f.write(wandb.run.get_url())
 
 if __name__ == "__main__":
     main()
