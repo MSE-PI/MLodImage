@@ -45,6 +45,9 @@ jobs:
         run: |
           # Fetch all other Git branches
           git fetch --depth=1 origin main:main
+          
+          # move to model folder
+          cd code/models/genre_detector
 
           # Compare parameters to main branch
           echo "# Params workflow vs. main" >> report.md
