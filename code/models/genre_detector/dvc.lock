@@ -9,30 +9,28 @@ stages:
       nfiles: 7562
     - path: src/model/audio_cnn.py
       md5: c841dfbcba4e547010c06f3f54c25a58
-      size: 4816
+      size: 4674
     - path: src/model/audio_utils.py
       md5: 8735c99967840f59c5ff35dbac222b58
-      size: 4914
+      size: 4784
     - path: src/train.py
-      md5: 2872768ee001c5a9a18ad9e9f98d5cb5
-      size: 3899
+      md5: a0d9071f2a532af6fe0d48f0ca9830e7
+      size: 4459
     params:
       params.yaml:
         train:
-          batch_size: 16
-          init_lr: 0.0001
-          max_epochs: 20
+          batch_size: 32
+          init_lr: 0.001
+          max_epochs: 5
           val_split: 0.2
-          nb_workers: 20
+          nb_workers: 0
     outs:
     - path: src/model/id_to_label.json
       md5: c8a48765b8ff499b9bf329eb24a27eeb
       size: 211
-      isexec: true
     - path: src/model/model.ckpt
-      md5: 4429fee875c779c6a73cf6d599a3bc97
-      size: 338790
-      isexec: true
+      md5: 088a4908e5af4014ba307a00886847fd
+      size: 337382
   evaluate:
     cmd: python3 src/evaluate.py
     deps:
@@ -42,29 +40,26 @@ stages:
       nfiles: 7562
     - path: src/evaluate.py
       md5: 5fbd2a3f65f3df9eea0d9fa9244fe645
-      size: 4113
+      size: 3996
     - path: src/model/model.ckpt
-      md5: 4429fee875c779c6a73cf6d599a3bc97
-      size: 338790
+      md5: 088a4908e5af4014ba307a00886847fd
+      size: 337382
     params:
       params.yaml:
         evaluate:
           batch_size: 1
-          nb_workers: 20
+          nb_workers: 0
     outs:
     - path: dvc_logs/metrics.json
-      md5: c9e6cbcbc2d197a80971efb3515c76be
+      md5: 8d2a563a00144b3a6587e641c974c0c5
       size: 38
-      isexec: true
     - path: dvc_logs/plots/metrics
-      md5: a4eb9702d69922cc2192e692b79c34ad.dir
+      md5: cef7cc1779363beb19762d41819ae555.dir
       size: 35
       nfiles: 1
     - path: dvc_logs/plots/sklearn/cm.json
-      md5: 44ba3cf3c5a5d3aded8196d185fb4c58
-      size: 45200
-      isexec: true
+      md5: 5d2911a2386325deabe2de44cf480a70
+      size: 45132
     - path: dvc_logs/report.html
-      md5: 9602f1e6fefd48d90bf02b17f6153987
-      size: 30359
-      isexec: true
+      md5: a87242ea45445d76f23524796f74c66c
+      size: 29679
