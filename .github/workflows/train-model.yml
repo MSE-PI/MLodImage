@@ -10,6 +10,9 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+env:
+  TRAIN_BRANCH: ${{ vars.TRAIN_BRANCH }}-$(date +%s)
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -36,7 +39,6 @@ jobs:
           NAMESPACE: ${{ vars.SERVICE_NAMESPACE }}
           MINIO_USR: ${{ secrets.MINIO_USR }}
           MINIO_PWD: ${{ secrets.MINIO_PWD }}
-          TRAIN_BRANCH: ${{ vars.TRAIN_BRANCH }}
           GIT_USER: ${{ secrets.REGISTRY_USER }}
           GIT_PASSWORD: ${{ secrets.REGISTRY_TOKEN }}
           WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
@@ -74,6 +76,6 @@ jobs:
       - name: Create Pull Request
         if: ${{ steps.model-check.outputs.return-code == 1 }}
         run: |
-          gh pr create -B main -H ${{ vars.TRAIN_BRANCH }} --title 'Merge ${{ vars.TRAIN_BRANCH }} into main' --body 'This PR was automatically created by the train-model-workflow' -r aptrc -r hofmannflorian -r bigthib0 -a ben-jy
+          gh pr create -B main -H $TRAIN_BRANCH --title 'Merge $TRAIN_BRANCH into main' --body 'This PR was automatically created by the train-model-workflow' -r aptrc -r hofmannflorian -r bigthib0 -a ben-jy
         env:
           GH_TOKEN: ${{ secrets.PR_TOKEN }}
