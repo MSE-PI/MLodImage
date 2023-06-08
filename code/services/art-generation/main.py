@@ -64,7 +64,17 @@ def prompt_builder(lyrics_infos, music_style):
     print(music_style["style"])
     print(lyrics_infos["top_words"])
 
-    prompt = f'An album cover in style of {music_style["style"]} without any text and containing the following themes:'
+    # Check if a sentiment is dominant
+    dominant_sentiment = None
+    sentiment_prompts = ""
+    for sentiment in lyrics_infos["sentiments"]:
+        if lyrics_infos["sentiments"][sentiment] > 0.5:
+            dominant_sentiment = sentiment
+            break
+    if dominant_sentiment is not None and not "others":
+        sentiment_prompts = f'with a {dominant_sentiment}++++ sentiment but '
+
+    prompt = f'An album cover in style of {music_style["style"]} {sentiment_prompts} without any text and illustrating the following themes:'
     for i, word in enumerate(lyrics_infos["top_words"]):
         if i == 0:
             prompt += f' {word}++++++'
