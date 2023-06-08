@@ -103,7 +103,6 @@ def main():
         monitor='val_loss',
         patience=10)
 
-
     trainer = pl.Trainer(
         accelerator='auto',
         devices='auto',
