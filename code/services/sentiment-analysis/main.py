@@ -108,23 +108,14 @@ def get_text_tf_idf_score(text: str):
 
 
 def filter_insignificant(chunk, tag_suffixes):
-    good = []
-    for word, tag in chunk:
-        ok = True
-        for suffix in tag_suffixes:
-            if tag.endswith(suffix):
-                ok = False
-                break
-        if ok:
-            good.append((word, tag))
-    return good
+    return [(word, tag) for word, tag in chunk if all(suffix not in tag and not tag.endswith(suffix) for suffix in tag_suffixes)]
 
 
 def get_top_n(dict_elem, n):
     result = dict(sorted(dict_elem.items(), key=itemgetter(1), reverse=True))
     # for each word get nltk tag
     result = nltk.pos_tag(result)
-    tags = ['DT', 'CC', 'PRP']
+    tags = ['DT', 'CC', 'PRP', 'IN', 'RB', 'VBG', 'VBZ']
     result = filter_insignificant(result, tags)
     result = [word.lower() for word, tag in result]
     return result[:n]
