@@ -67,7 +67,7 @@ export const store = reactive({
     },
     intermediate_results: {
         whisper: {
-            title: "Text Recognition",
+            title: "Speech Recognition",
             value: 'null',
         },
         sentiment: {
