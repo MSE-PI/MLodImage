@@ -87,7 +87,6 @@ def prompt_builder(lyrics_infos, music_style):
             prompt += f', {word}'
     return prompt
 
-
 def initialize_service():
     """
     Initialize the service

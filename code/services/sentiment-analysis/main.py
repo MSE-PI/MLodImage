@@ -101,7 +101,6 @@ def get_text_tf_idf_score(text: str):
 
     # Performing a log and divide
     idf_score.update((x, math.log(int(total_sent_len) / y)) for x, y in idf_score.items())
-
     tf_idf_score = {key: tf_score[key] * idf_score.get(key, 0) for key in tf_score.keys()}
 
     return tf_idf_score
