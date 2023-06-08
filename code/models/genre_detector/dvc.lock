@@ -8,20 +8,20 @@ stages:
       size: 7511348338
       nfiles: 7562
     - path: src/model/audio_cnn.py
-      md5: c841dfbcba4e547010c06f3f54c25a58
-      size: 4674
+      md5: d5f7bf2699033c399dfc9446237a5760
+      size: 5082
     - path: src/model/audio_utils.py
       md5: 8735c99967840f59c5ff35dbac222b58
       size: 4784
     - path: src/train.py
-      md5: a0d9071f2a532af6fe0d48f0ca9830e7
-      size: 4459
+      md5: 785acd27375405595d6f0d033dfa6fae
+      size: 4741
     params:
       params.yaml:
         train:
-          batch_size: 32
-          init_lr: 0.001
-          max_epochs: 2
+          batch_size: 16
+          init_lr: 0.0001
+          max_epochs: 50
           val_split: 0.2
           nb_workers: 0
     outs:
@@ -29,8 +29,8 @@ stages:
       md5: c8a48765b8ff499b9bf329eb24a27eeb
       size: 211
     - path: src/model/model.ckpt
-      md5: 619a6705ea106121085edaf794323aef
-      size: 337382
+      md5: e04e459850a4e2896250e235575dfb55
+      size: 1242479
   evaluate:
     cmd: python3 src/evaluate.py
     deps:
@@ -42,8 +42,8 @@ stages:
       md5: 5fbd2a3f65f3df9eea0d9fa9244fe645
       size: 3996
     - path: src/model/model.ckpt
-      md5: 619a6705ea106121085edaf794323aef
-      size: 337382
+      md5: e04e459850a4e2896250e235575dfb55
+      size: 1242479
     params:
       params.yaml:
         evaluate:
@@ -51,15 +51,15 @@ stages:
           nb_workers: 0
     outs:
     - path: dvc_logs/metrics.json
-      md5: 0bc2690ea73cf3a5afd3d7956a177f0c
+      md5: 30bcb455b5e90e321415937ef2d1d70d
       size: 39
     - path: dvc_logs/plots/metrics
-      md5: 6c0e292f27e027946c819cd2afac0116.dir
+      md5: 41a5ace1f97a32af021952000d4f6dde.dir
       size: 36
       nfiles: 1
     - path: dvc_logs/plots/sklearn/cm.json
-      md5: 07e54541984024c8bd08a6b0adc6622d
-      size: 45270
+      md5: e2d8d35b289f2aa163cb99dd1ee0ae7d
+      size: 45194
     - path: dvc_logs/report.html
-      md5: 83dc6cb2191c0bbb0bda644e900de1bd
-      size: 29818
+      md5: be1f37a5a2d1b71d2d5eade361f4377c
+      size: 29742
