@@ -26,40 +26,33 @@ class AudioCNN(pl.LightningModule):
         self.bn1 = nn.BatchNorm2d(8)
         nn.init.kaiming_normal_(self.conv1.weight, a=0.1)
         self.conv1.bias.data.zero_()
-        conv_layers += [self.conv1, self.relu1, self.bn1]
 
         self.conv2 = nn.Conv2d(8, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
         self.relu2 = nn.ReLU()
         self.bn2 = nn.BatchNorm2d(16)
         nn.init.kaiming_normal_(self.conv2.weight, a=0.1)
         self.conv2.bias.data.zero_()
-        conv_layers += [self.conv2, self.relu2, self.bn2]
 
         self.conv3 = nn.Conv2d(16, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
         self.relu3 = nn.ReLU()
         self.bn3 = nn.BatchNorm2d(32)
         nn.init.kaiming_normal_(self.conv3.weight, a=0.1)
         self.conv3.bias.data.zero_()
-        conv_layers += [self.conv3, self.relu3, self.bn3]
 
         self.conv4 = nn.Conv2d(32, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
         self.relu4 = nn.ReLU()
         self.bn4 = nn.BatchNorm2d(64)
         nn.init.kaiming_normal_(self.conv4.weight, a=0.1)
         self.conv4.bias.data.zero_()
-        conv_layers += [self.conv4, self.relu4, self.bn4]
 
         self.conv5 = nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
         self.relu5 = nn.ReLU()
         self.bn5 = nn.BatchNorm2d(128)
         nn.init.kaiming_normal_(self.conv5.weight, a=0.1)
         self.conv5.bias.data.zero_()
-        conv_layers += [self.conv5, self.relu5, self.bn5]
 
         self.ap = nn.AdaptiveAvgPool2d(output_size=1)
         self.linear = nn.Linear(in_features=128, out_features=nb_classes, bias=True)
-
-        self.conv = nn.Sequential(*conv_layers)
 
         # loss function
         self.loss = nn.CrossEntropyLoss()
@@ -81,7 +74,11 @@ class AudioCNN(pl.LightningModule):
         :return: the output
         :rtype: torch.Tensor
         """
-        x = self.conv(x)
+        x = self.bn1(self.relu1(self.conv1(x)))
+        x = self.bn2(self.relu2(self.conv2(x)))
+        x = self.bn3(self.relu3(self.conv3(x)))
+        x = self.bn4(self.relu4(self.conv4(x)))
+        x = self.bn5(self.relu5(self.conv5(x)))
         x = self.ap(x)
         x = x.view(x.shape[0], -1)
         return self.linear(x)
