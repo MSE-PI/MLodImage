@@ -113,9 +113,6 @@ def main():
     # train the model
     trainer.fit(model, train_loader, val_loader)
 
-    # stop wandb run
-    wandb.finish()
-
     # export id_to_label dict
     with open(os.path.join(os.getcwd(), 'src', 'model', 'id_to_label.json'), 'w') as fp:
         json.dump(ID_TO_LABEL, fp, indent=4)
@@ -123,6 +120,9 @@ def main():
     # save the url wandb run
     with open(os.path.join(os.getcwd(), 'wandb_training_url.txt'), 'w') as f:
         f.write(wandb.run.get_url())
+
+    # stop wandb run
+    wandb.finish()
 
 if __name__ == "__main__":
     main()
