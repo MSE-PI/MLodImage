@@ -1,7 +1,7 @@
 train:
   batch_size: 16
-  init_lr: 0.001
-  max_epochs: 2
+  init_lr: 0.0001
+  max_epochs: 50
   val_split: 0.2
   nb_workers: 0 # set to 0 if you get an error
 
@@ -11,6 +11,6 @@ evaluate:
 
 audio:
   audio_duration: 30000
-  sample_rate: 44100
+  sample_rate: 48000
   nb_channels: 2
-  time_shift: 0.2 # in percentage of audio_duration
+  time_shift: 0.4 # in percentage of audio_duration

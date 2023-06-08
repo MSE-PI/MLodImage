@@ -98,15 +98,24 @@ def main():
         mode='min',
     )
 
+    # early stopping callback to stop the training if the validation loss does not decrease anymore
+    early_stopping_callback = pl.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=10)
+
+
     trainer = pl.Trainer(
         accelerator='auto',
         devices='auto',
         max_epochs=TRAIN_PARAMS['max_epochs'],
         logger=WandbLogger(),
-        callbacks=[checkpoint_callback])
+        callbacks=[checkpoint_callback, early_stopping_callback])
         
     # train the model
     trainer.fit(model, train_loader, val_loader)
+
+    # stop wandb run
+    wandb.finish()
 
     # export id_to_label dict
     with open(os.path.join(os.getcwd(), 'src', 'model', 'id_to_label.json'), 'w') as fp:

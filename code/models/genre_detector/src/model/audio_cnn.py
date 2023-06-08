@@ -12,8 +12,11 @@ class AudioCNN(pl.LightningModule):
         """
         Constructor.
         :param nb_channels: the number of channels in the input data
+        :type nb_channels: int
         :param nb_classes: the number of classes
         :type nb_classes: int
+        :param lr: the learning rate
+        :type lr: float
         """
         super(AudioCNN, self).__init__()
         conv_layers = []
@@ -46,8 +49,15 @@ class AudioCNN(pl.LightningModule):
         self.conv4.bias.data.zero_()
         conv_layers += [self.conv4, self.relu4, self.bn4]
 
+        self.conv5 = nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+        self.relu5 = nn.ReLU()
+        self.bn5 = nn.BatchNorm2d(128)
+        nn.init.kaiming_normal_(self.conv5.weight, a=0.1)
+        self.conv5.bias.data.zero_()
+        conv_layers += [self.conv5, self.relu5, self.bn5]
+
         self.ap = nn.AdaptiveAvgPool2d(output_size=1)
-        self.linear = nn.Linear(in_features=64, out_features=nb_classes, bias=True)
+        self.linear = nn.Linear(in_features=128, out_features=nb_classes, bias=True)
 
         self.conv = nn.Sequential(*conv_layers)
 
