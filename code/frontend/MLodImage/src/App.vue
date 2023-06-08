@@ -4,6 +4,9 @@ import { get, getResults, postFile, postURL } from './utils/api';
 import FileUpload from '@/components/FileUpload.vue';
 import JSZip from 'jszip';
 
+const isMobile = () => {
+    return window.innerWidth <= 768;
+};
 const ORCHESTRATOR_URL = 'orchestrator-mlodimage.kube.isc.heia-fr.ch';
 let ws: WebSocket;
 
@@ -27,13 +30,24 @@ const initWebSocket = () => {
         const message = JSON.parse(msg.data);
         setStatus(message.status);
         if (message.status == Status.RESULT_READY) {
+            store.intermediate_results.image_generation_models.value = JSON.parse(message.results.image_generation.model_ids);
+            store.intermediate_results.image_generation.value = JSON.stringify(message.results.image_generation);
             getResult();
         } else if (message.status == Status.FAILED) {
             store.disabled = false;
         } else {
-            store.intermediate_results.whisper.value = message.results.whisper;
-            store.intermediate_results.sentiment.value = message.results.sentiment_analysis;
-            store.intermediate_results.music_style.value = message.results.music_style;
+            if (message.results && message.results.whisper) {
+                store.intermediate_results.whisper.value = message.results.whisper;
+            }
+            if (message.results && message.results.sentiment_analysis) {
+                store.intermediate_results.sentiment.value = message.results.sentiment_analysis;
+            }
+            if (message.results && message.results.music_style) {
+                store.intermediate_results.music_style.value = message.results.music_style;
+            }
+            if (message.results) {
+                console.log('message.results: ', message.results)
+            }
         }
     };
 }
@@ -67,6 +81,14 @@ const resetStore = () => {
         music_style: {
             title: "Music Style Detection",
             value: 'null',
+        },
+        image_generation: {
+            title: "Image Generation",
+            value: 'null',
+        },
+        image_generation_models: {
+            title: "Image Generation Models",
+            value: [],
         }
     };
     store.status = Status.IDLE;
@@ -330,15 +352,57 @@ const downloadAll = () => {
                                             :key="index"
                                             :src="image"
                                         >
-                                            <div class="title d-flex flex-row card-middle pt-4 pl-4">
-                                                <v-btn color="pink"
-                                                       dark
-                                                       large
-                                                       @click="downloadImage(index)"
-                                                       icon="mdi mdi-file-download-outline"
-                                                       title="Download image"
-                                                />
-                                            </div>
+                                            <v-row class="text-center">
+                                                <v-col>
+                                                    <div class="title d-flex flex-row card-middle pt-4 pl-4">
+                                                        <v-btn color="pink"
+                                                               dark
+                                                               large
+                                                               @click="downloadImage(index)"
+                                                               icon="mdi mdi-file-download-outline"
+                                                               title="Download image"
+                                                        />
+                                                    </div>
+                                                </v-col>
+                                                <v-col>
+                                                    <div v-if="isMobile()"
+                                                         class="title d-flex flex-row pt-4 pr-4 justify-end">
+                                                        <v-snackbar
+                                                            :timeout="3000"
+                                                            color="white"
+                                                            multi-line
+                                                        >
+                                                            <template v-slot:activator="{ props }">
+                                                                <v-btn
+                                                                    dark
+                                                                    large
+                                                                    icon="mdi mdi-brain"
+                                                                    title="Image generation model"
+                                                                    v-bind="props"
+                                                                />
+                                                            </template>
+                                                            <b>Image generation model:</b>
+                                                            <br/>
+                                                            {{
+                                                                store.intermediate_results.image_generation_models.value[index]
+                                                            }}
+                                                        </v-snackbar>
+                                                    </div>
+                                                    <div v-else class="title d-flex flex-row pt-4 pr-4 justify-end">
+                                                        <v-chip color="white"
+                                                                variant="elevated"
+                                                                size="x-large"
+                                                                label
+                                                                title="Image generation model"
+                                                        >
+                                                            <v-icon start icon="mdi-brain"></v-icon>
+                                                            {{
+                                                                store.intermediate_results.image_generation_models.value[index]
+                                                            }}
+                                                        </v-chip>
+                                                    </div>
+                                                </v-col>
+                                            </v-row>
                                         </v-carousel-item>
                                     </v-carousel>
                                     <v-chip
@@ -435,7 +499,7 @@ const downloadAll = () => {
                                             />
                                         </v-col>
                                         <v-divider
-                                            class="rounded-lg border-opacity-75 mt-2 mb-2 mr-3 ml-3"
+                                            class="rounded-lg border-opacity-75 mt-2 mb-2 mr-4 ml-4"
                                             :thickness="3"
                                         />
                                         <v-col cols="12" v-if="store.window_page != 'run'">
@@ -488,7 +552,7 @@ const downloadAll = () => {
                                         </v-col>
                                         <v-divider
                                             v-if="store.status != Status.IDLE"
-                                            class="rounded-lg border-opacity-75 mt-2 mb-2 mr-3 ml-3"
+                                            class="rounded-lg border-opacity-75 mt-2 mb-2 mr-4 ml-4"
                                             :thickness="3"
                                         />
                                         <v-col cols="12" v-if="store.window_page != 'run'">
@@ -575,6 +639,18 @@ const downloadAll = () => {
                                                 </pre>
                                             </v-expansion-panel-text>
                                         </v-expansion-panel>
+                                        <v-expansion-panel
+                                            class="rounded-lg"
+                                            id="music"
+                                            :title="store.intermediate_results.image_generation.title"
+                                            :disabled="store.intermediate_results.image_generation.value=='null'"
+                                        >
+                                            <v-expansion-panel-text>
+                                                <pre class="text-left custom-expansion-panel">
+                                                    {{ store.intermediate_results.image_generation.value }}
+                                                </pre>
+                                            </v-expansion-panel-text>
+                                        </v-expansion-panel>
                                     </v-expansion-panels>
                                 </v-card-text>
                                 <v-card-actions class="pl-4 pr-4 pb-4 card">
@@ -614,8 +690,6 @@ const downloadAll = () => {
                     </v-window>
                 </v-col>
             </v-row>
-            <!-- create a new row with buttons to switch between the 2 windows -->
-
         </v-layout>
     </v-container>
 </template>
@@ -629,7 +703,7 @@ const downloadAll = () => {
 .card-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: 95%;
 }
 
 .card-middle {
@@ -660,6 +734,7 @@ const downloadAll = () => {
     word-wrap: break-word;
     max-width: 100%;
 }
+
 @media (max-width: 600px) {
     .custom-expansion-panel {
         max-width: 326px;

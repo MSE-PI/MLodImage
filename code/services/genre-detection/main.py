@@ -30,149 +30,30 @@ from common_code.common.models import FieldDescription, ExecutionUnitTag
 # service specific imports
 from tempfile import NamedTemporaryFile
 from fastapi import HTTPException, UploadFile, File
-from AudioCNN import AudioCNN
-import torchaudio
+from model.audio_cnn import AudioCNN
+from model.audio_utils import AudioUtils
+import yaml
 import torch
 import os
-from minio import Minio
-from datetime import datetime
 from pydub import AudioSegment
 
-# audio configuration TODO: move to config file
-# support audio : wav, mpeg, m4a, ogg
+# support audio : mpeg, ogg
 AUDIO_SUPPORTED = ["audio/mpeg", "audio/ogg"]
-AUDIO_DURATION = 3000  # equals 3 seconds
-SAMPLE_RATE = 44100
-N_CHANNELS = 1
-
-# minio configuration
-MINIO_HOSTNAME = 'minio1.isc.heia-fr.ch:9018'
-MINIO_BUCKET_NAME = 'pi-aimarket-mlodimage'
-MINIO_ACCESS_KEY = 'fhofmann'
-MINIO_SECRET_KEY = 'meik4aLaisei'
-MINIO_CLIENT = Minio(MINIO_HOSTNAME, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=True)
-
-# download the model from Minio and save it locally
-MINIO_CLIENT.fget_object(
-    bucket_name=MINIO_BUCKET_NAME,
-    object_name="cnn_model.h5",
-    file_path="cnn_model.h5"
-)
+AUDIO_PARAMS = yaml.safe_load(open("params.yaml"))['audio']
 
 CURRENT_PATH = os.getcwd()
-
 settings = get_settings()
 
+# load json file containing the mapping between the genre and the index
+with open('model/id_to_label.json') as f:
+    mapping = json.load(f)
 
-class AudioUtil:
-    """
-    Utility class for audio processing.
-    """
-
-    @staticmethod
-    def open(audio_file):
-        """
-        Open an audio file and return the signal and the sample rate.
-        :param audio_file: a file-like object or a path to an audio file
-        :type audio_file: Union[str, pathlib.Path, FileLike]
-        :return: the signal and the sample rate
-        """
-        # convert the file to ensure is compatible with torchaudio
-        signal, sample_rate = torchaudio.load(audio_file)
-        return signal, sample_rate
-
-    @staticmethod
-    def rechannel(audio, new_channel):
-        """
-        Convert a given audio to the specified number of channels.
-        :param audio: the audio, composed of the signal and the sample rate
-        :type audio: Tuple[torch.Tensor, int]
-        :param new_channel: the target number of channels
-        :type new_channel: int
-        :return: the audio with the target number of channels
-        :rtype: Tuple[torch.Tensor, int]
-        """
-        signal, sample_rate = audio
-
-        if signal.shape[0] == new_channel:
-            # nothing to do as the signal already has the target number of channels
-            return audio
-        if new_channel == 1:
-            # convert to mono by selecting only the first channel
-            signal = signal[:1, :]
-        else:
-            # convert to stereo by duplicating the first channel
-            signal = torch.cat([signal, signal])
-        return signal, sample_rate
-
-    @staticmethod
-    def resample(audio, new_sample_rate):
-        """
-        Change the sample rate of the audio signal.
-        :param audio: the audio, composed of the signal and the sample rate
-        :type audio: Tuple[torch.Tensor, int]
-        :param new_sample_rate: the target sample rate
-        :type new_sample_rate: int
-        :return: the audio with the target sample rate
-        :rtype: Tuple[torch.Tensor, int]
-        """
-        signal, sample_rate = audio
-        if sample_rate == new_sample_rate:
-            # nothing to do
-            return audio
-        resample = torchaudio.transforms.Resample(sample_rate, new_sample_rate)
-        signal = resample(signal)
-        return signal, new_sample_rate
-
-    @staticmethod
-    def pad_truncate(audio, length):
-        """
-        Pad or truncate an audio signal to a fixed length (in ms).
-        :param audio: the audio, composed of the signal and the sample rate
-        :type audio: Tuple[torch.Tensor, int]
-        :param length: the target length in ms
-        :type length: int
-        :return: the audio with the target length
-        :rtype: Tuple[torch.Tensor, int]
-        """
-        signal, sample_rate = audio
-        max_length = sample_rate // 1000 * length
-
-        if (signal.shape[1] > max_length):
-            signal = signal[:, :max_length]
-        elif (signal.shape[1] < max_length):
-            padding = max_length - signal.shape[1]
-            signal = F.pad(signal, (0, padding))
-        return (signal, sample_rate)
-
-    @staticmethod
-    def mel_spectrogram(audio, n_mels=64, n_fft=1024, hop_length=None):
-        """
-        Create the mel spectrogram for the given audio signal.
-        :param audio: the audio, composed of the signal and the sample rate
-        :type audio: Tuple[torch.Tensor, int]
-        :param n_mels: the number of mel filterbanks
-        :type n_mels: int
-        :param n_fft: the size of the FFT
-        :type n_fft: int
-        :param hop_length: the length of hop between STFT windows
-        :type hop_length: int
-        :return: the mel spectrogram
-        :rtype: torch.Tensor
-        """
-        signal, sample_rate = audio
-
-        mel_spectrogram = torchaudio.transforms.MelSpectrogram(
-            sample_rate,
-            n_fft=n_fft,
-            hop_length=hop_length,
-            n_mels=n_mels
-        )(signal)
-
-        # convert to decibels
-        mel_spectrogram = torchaudio.transforms.AmplitudeToDB()(mel_spectrogram)
-
-        return mel_spectrogram
+# load the model
+torch.cuda.is_available()  # Check if NVIDIA GPU is available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = AudioCNN.load_from_checkpoint("model/model.ckpt", map_location=device)
+model.eval()
+print("Model loaded successfully, running on device: " + str(device))
 
 
 class MyService(Service):
@@ -198,22 +79,20 @@ class MyService(Service):
             ],
             data_out_fields=[
                 FieldDescription(name="result", type=[FieldDescriptionType.APPLICATION_JSON]),
-            ]
+            ],
+            tags=[
+                ExecutionUnitTag(
+                    name=ExecutionUnitTagName.NEURAL_NETWORKS,
+                    acronym=ExecutionUnitTagAcronym.NEURAL_NETWORKS
+                ),
+            ],
         )
 
-        # load json file containing the mapping between the genre and the index
-        with open('id_to_label.json') as f:
-            self.mapping = json.load(f)
+        global mapping, model, device
 
-        # load the model
-        torch.cuda.is_available()  # Check if NVIDIA GPU is available
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        # TODO : download the model from Minio
-        self.model = AudioCNN()
-        self.model.load_state_dict(torch.load('cnn_model.h5', map_location=self.device))
-        self.model.to(self.device)
-        self.model.eval()
-        print("Model loaded successfully, running on device: " + str(self.device))
+        self.mapping = mapping
+        self.model = model
+        self.device = device
 
     def process(self, data):
         # load and preprocess the audio file
@@ -222,11 +101,11 @@ class MyService(Service):
             with NamedTemporaryFile(dir="./audio/", delete=True) as f:
                 f.write(audio_file)
                 AudioSegment.from_file(f.name).export(f.name, format="wav")
-                audio = AudioUtil.open(f.name)
-                audio = AudioUtil.rechannel(audio, N_CHANNELS)
-                audio = AudioUtil.resample(audio, SAMPLE_RATE)
-                audio = AudioUtil.pad_truncate(audio, AUDIO_DURATION)
-                mel_spectrogram = AudioUtil.mel_spectrogram(audio)
+                audio = AudioUtils.open(f.name)
+                audio = AudioUtils.rechannel(audio, AUDIO_PARAMS["nb_channels"])
+                audio = AudioUtils.resample(audio, AUDIO_PARAMS["sample_rate"])
+                audio = AudioUtils.pad_truncate(audio, AUDIO_PARAMS["audio_duration"])
+                mel_spectrogram = AudioUtils.mel_spectrogram(audio)
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 

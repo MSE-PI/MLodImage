@@ -108,7 +108,7 @@ Download a youtube video to mp3.
 """
 
 api_description = """
-Use the given URL to download the video from youtube.com and convert it to mp3.
+Use the given URL to download the video from youtube.com and convert it to mp3 format.
 """
 
 # Define the FastAPI application with information

@@ -1,0 +1,1 @@
+https://wandb.ai/mlodimage/genre-detector/runs/ztvdmof2

@@ -3,37 +3,47 @@ stages:
   train:
     cmd: python3 src/train.py
     deps:
-    - path: data/FMA
-      md5: 516070cc4eac5de0c0527e787c4e374c.dir
-      size: 636715666
-      nfiles: 660
+    - path: data
+      md5: cdfd7a25d438086b4d01741bd6811b9e.dir
+      size: 7511348338
+      nfiles: 7562
+    - path: src/model/audio_cnn.py
+      md5: c841dfbcba4e547010c06f3f54c25a58
+      size: 4674
+    - path: src/model/audio_utils.py
+      md5: 8735c99967840f59c5ff35dbac222b58
+      size: 4784
     - path: src/train.py
-      md5: 2ab99cce8920afcafd6e672269d262af
-      size: 3751
+      md5: a0d9071f2a532af6fe0d48f0ca9830e7
+      size: 4459
     params:
       params.yaml:
         train:
           batch_size: 16
-          max_epochs: 1
+          init_lr: 0.001
+          max_epochs: 2
           val_split: 0.2
           nb_workers: 0
     outs:
-    - path: model.ckpt
-      md5: a98df6604ae0493684e42587c323e84b
-      size: 440699551
+    - path: src/model/id_to_label.json
+      md5: c8a48765b8ff499b9bf329eb24a27eeb
+      size: 211
+    - path: src/model/model.ckpt
+      md5: 013347fc7bec859600f3544f2a5a0ef1
+      size: 337382
   evaluate:
     cmd: python3 src/evaluate.py
     deps:
-    - path: data/GTZAN
-      md5: 1a38fd66b26a08c25dc79410dea35709.dir
-      size: 945425411
-      nfiles: 715
-    - path: model.ckpt
-      md5: a98df6604ae0493684e42587c323e84b
-      size: 440699551
+    - path: data
+      md5: cdfd7a25d438086b4d01741bd6811b9e.dir
+      size: 7511348338
+      nfiles: 7562
     - path: src/evaluate.py
-      md5: 4850777dc740933b85f261cc540982c0
-      size: 4138
+      md5: 5fbd2a3f65f3df9eea0d9fa9244fe645
+      size: 3996
+    - path: src/model/model.ckpt
+      md5: 013347fc7bec859600f3544f2a5a0ef1
+      size: 337382
     params:
       params.yaml:
         evaluate:
@@ -41,15 +51,15 @@ stages:
           nb_workers: 0
     outs:
     - path: dvc_logs/metrics.json
-      md5: 98c6c8ff133a4019880f9001fdfc1804
+      md5: 02fa7d8daf984ef521867dc1a15ede5c
       size: 39
     - path: dvc_logs/plots/metrics
-      md5: 83a36c6113cdaf2ae4371583173ea432.dir
+      md5: bf634cf6a706048b7132e4b2c20febb9.dir
       size: 36
       nfiles: 1
     - path: dvc_logs/plots/sklearn/cm.json
-      md5: 834acb04b74cd4c2db39c01f57aebb49
-      size: 85845
+      md5: 9f63b7dbd273391651e508872e83fe94
+      size: 45199
     - path: dvc_logs/report.html
-      md5: 69b1772458e2e938af1e0425fff5ef1b
-      size: 53993
+      md5: 113653ce57158ccebf572dd67fbcba70
+      size: 29747

@@ -34,7 +34,7 @@ from io import BytesIO
 
 settings = get_settings()
 loaded = False
-model_ids = ["stabilityai/stable-diffusion-2-base", "prompthero/openjourney", "./music-cover"]
+model_ids = ['stabilityai/stable-diffusion-2-base', 'prompthero/openjourney', './music-cover']
 guidance_scale = 5
 nb_steps = 50
 nb_images_per_model = 1
@@ -50,6 +50,7 @@ def build_pipeline_from_model_id(model_id):
     pipe = pipe.to("cuda")
     return pipe, compel
 
+
 def build_model_from_ckpt(ckpt_path, model_id):
     pipe = download_from_original_stable_diffusion_ckpt(
         checkpoint_path=ckpt_path,
@@ -61,7 +62,7 @@ def build_model_from_ckpt(ckpt_path, model_id):
 
 def prompt_builder(lyrics_infos, music_style):
     print("Building prompt...")
-    print(music_style["style"])
+    print(music_style["genre_top"])
     print(lyrics_infos["top_words"])
 
     # Check if a sentiment is dominant
@@ -86,6 +87,7 @@ def prompt_builder(lyrics_infos, music_style):
             prompt += f', {word}'
     return prompt
 
+
 def initialize_service():
     """
     Initialize the service
@@ -109,6 +111,7 @@ def initialize_service():
         compels.append(compel)
 
     loaded = True
+
 
 class MyService(Service):
     """
@@ -146,16 +149,15 @@ class MyService(Service):
 
     def process(self, data):
         print("Data processing...")
-        print(data)
 
         lyrics_analysis = json.loads(data["lyrics_analysis"].data)
-        print(lyrics_analysis)
+        print(f"Lyrics analysis: {lyrics_analysis}")
 
         music_style = json.loads(data["music_style"].data)
-        print(music_style)
+        print(f"Music style: {music_style}")
 
         prompt = prompt_builder(lyrics_analysis, music_style)
-        print(prompt)
+        print(f"Prompt: {prompt}")
 
         all_cover_images = []
         for i in range(len(pipes)):
@@ -208,11 +210,11 @@ class MyService(Service):
 
 
 api_summary = """
-This service generates art from lyrics and music style.
+This service generates art from lyrics and music style with different models.
 """
 
 api_description = """
-Generate art from lyrics and music style. Returns a JSON object with the following fields:
+Generate art from lyrics and music style. Returns several images:
 - `image1`: the first generated image 
 - `image2`: the second generated image
 - `image3`: the third generated image
@@ -245,12 +247,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Redirect to docs
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse("/docs", status_code=301)
 
+
 service_service: ServiceService | None = None
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -309,7 +314,7 @@ class LyricsAnalysis(BaseModel):
 
 
 class MusicStyle(BaseModel):
-    style: str
+    genre_top: str
 
 
 class Data(BaseModel):
@@ -353,19 +358,16 @@ async def handle_process(data: Data):
     print("Building archive")
     archive = BytesIO()
     with zipfile.ZipFile(archive, 'w') as zip_file:
-        print("Add images to the archive")
         for root, dirs, files in os.walk(image_dir):
             for file in files:
                 file_path = os.path.join(root, file)
                 zip_file.write(file_path)
 
     # Save the archive on disk
-    print("Save archive on disk")
     archive_path = "images.zip"
     with open(archive_path, "wb") as f:
         f.write(archive.getvalue())
 
-    print("Archive", type(archive.getvalue()))
     print("Archive path", archive_path)
 
     return FileResponse(archive_path, media_type="application/zip", filename="images.zip",
@@ -382,10 +384,10 @@ async def test(model_id: str, prompt: str, negative_prompts: str, nb_steps: int,
 
     print("Image generation...")
     images = pipe(prompt_embeds=prompt_embeds,
-               num_inference_steps=nb_steps,
-               guidance_scale=guidance_scale,
-               negative_prompt_embeds=negative_prompts_embeds,
-               ).images
+                  num_inference_steps=nb_steps,
+                  guidance_scale=guidance_scale,
+                  negative_prompt_embeds=negative_prompts_embeds,
+                  ).images
 
     print("Image processing...")
     result = BytesIO()

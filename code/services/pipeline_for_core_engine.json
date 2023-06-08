@@ -1,0 +1,67 @@
+{
+    "name": "Cover Generator",
+    "slug": "cover-generator",
+    "summary": "Generate a cover image for a song",
+    "description": "Generate a cover image for a song based on the song's lyrics and music style.",
+    "data_in_fields": [
+        {
+            "name": "audio",
+            "type": [
+                "audio/mpeg",
+                "audio/ogg"
+              ]
+        }
+    ],
+    "data_out_fields": [
+        {
+            "name": "image1",
+            "type": [
+                "image/png"
+            ]
+        },
+        {
+            "name": "image2",
+            "type": [
+                "image/png"
+            ]
+        },
+        {
+            "name": "image3",
+            "type": [
+                "image/png"
+            ]
+        },
+        {
+            "name": "metadata",
+            "type": [
+                "application/json"
+            ]
+        }
+    ],
+    "steps": [
+        {
+            "identifier": "whisper",
+            "needs": [],
+            "inputs": ["pipeline.audio"],
+            "service_id": ""
+        },
+        {
+            "identifier": "genre-detection",
+            "needs": [],
+            "inputs": ["pipeline.audio"],
+            "service_id": ""
+        },
+        {
+            "identifier": "sentiment-analysis",
+            "needs": ["whisper"],
+            "inputs": ["whisper.result"],
+            "service_id": ""
+        },
+        {
+            "identifier": "art-generation",
+            "needs": ["sentiment-analysis", "genre-detection"],
+            "inputs": ["sentiment-analysis.result", "genre-detection.result"],
+            "service_id": ""
+        }
+    ]
+}

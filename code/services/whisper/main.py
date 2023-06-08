@@ -62,7 +62,7 @@ class MyService(Service):
                 FieldDescription(name="audio", type=[FieldDescriptionType.AUDIO_MP3, FieldDescriptionType.AUDIO_OGG]),
             ],
             data_out_fields=[
-                FieldDescription(name="result", type=[FieldDescriptionType.APPLICATION_JSON]),
+                FieldDescription(name="result", type=[FieldDescriptionType.TEXT_PLAIN]),
             ],
             tags=[
                 ExecutionUnitTag(
@@ -88,13 +88,14 @@ class MyService(Service):
                 f.write(audio)
                 # Do the speech recognition
                 result = my_service.model.transcribe(f.name)
+                print("Transcription: " + result["text"])
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
         return {
             "result": TaskData(
-                data=json.dumps(result),
-                type=FieldDescriptionType.APPLICATION_JSON
+                data=result["text"],
+                type=FieldDescriptionType.TEXT_PLAIN
             )
         }
 
@@ -104,8 +105,7 @@ Transcribe any audio file to text
 """
 
 api_description = """
-Transcribe any audio file to text. Returns a JSON object with the following fields:
-- `transcription`: the text extracted from the audio file
+Transcribe any audio file to text. Returns the transcription of the audio file as a string.
 """
 
 # Define the FastAPI application with information
@@ -213,5 +213,5 @@ async def process(audio: UploadFile = File(...)):
     # call service to process audio
     result = MyService().process({"audio": TaskData(data=audio_bytes, type=AUDIO_TYPE)})
     # Return the result
-    data = json.loads(result["result"].data)
+    data = result["result"].data
     return data

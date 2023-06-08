@@ -104,10 +104,10 @@ class PipelineInformation(BaseModel):
     id: str
     status: PipelineStatus
     results: dict = {
-        "youtube_downloader": None,
         "whisper": None,
         "sentiment_analysis": None,
         "music_style": None,
+        "image_generation": None,
     }
 
 
@@ -170,9 +170,7 @@ def delete_finished_pipelines():
 
 
 def get_pipeline_by_id(pipeline_id: str):
-    print("get_pipeline_by_id", pipeline_id)
     for pipeline in pipelines:
-        print(pipeline.informations.id)
         if pipeline.informations.id == pipeline_id:
             return pipeline
     return None
@@ -209,12 +207,12 @@ async def run_pipeline():
 
         if pipeline.audio_path is None:
             # Call youtube-downloader service
-            await update_pipeline_status(pipeline, PipelineStatus.RUNNING_YOUTUBE_DOWNLOADER, "youtube_downloader",
+            await update_pipeline_status(pipeline, PipelineStatus.RUNNING_YOUTUBE_DOWNLOADER, "whisper",
                                          "Downloading audio")
             print("Calling youtube-downloader service", YOUTUBE_DOWNLOADER_URL + SERVICE_ROUTE)
             response = requests.post(YOUTUBE_DOWNLOADER_URL + SERVICE_ROUTE, params={"url": pipeline.url})
             if not isResponseOK(response):
-                await update_pipeline_status(pipeline, PipelineStatus.FAILED, "youtube_downloader",
+                await update_pipeline_status(pipeline, PipelineStatus.FAILED, "whisper",
                                              "Error while downloading audio")
                 continue
             # Transform response.content to a BinaryIO
@@ -223,8 +221,7 @@ async def run_pipeline():
             pipeline.audio_type = "audio/mpeg"
 
         # Call whisper service
-        await update_pipeline_status(pipeline, PipelineStatus.RUNNING_WHISPER, "youtube_downloader",
-                                     pipeline.audio_path)
+        await update_pipeline_status(pipeline, PipelineStatus.RUNNING_WHISPER, "whisper", "Extracting lyrics")
         audio_file = open(pipeline.audio_path, "rb")
         audio_file_bytes = audio_file.read()
         audio_type = pipeline.audio_type if pipeline.audio_type else "audio/mpeg"
@@ -236,7 +233,6 @@ async def run_pipeline():
             await update_pipeline_status(pipeline, PipelineStatus.FAILED, "whisper", "Error while extracting lyrics")
             continue
         lyrics = response.json()
-        lyrics = lyrics["text"]
 
         # Call sentiment-analysis service
         await update_pipeline_status(pipeline, PipelineStatus.RUNNING_SENTIMENT, "whisper", lyrics)
@@ -265,7 +261,7 @@ async def run_pipeline():
         image_data = {
             "lyrics_analysis": sentiment_analysis,
             "music_style": {
-                "style": music_style["genre_top"],
+                "genre_top": music_style["genre_top"],
             }
         }
         response = requests.post(ART_GENERATION_URL + SERVICE_ROUTE, json=image_data)
@@ -274,6 +270,11 @@ async def run_pipeline():
                                          "Error while generating images")
             continue
 
+        response_metadata = {
+            "prompt": response.headers["prompt"],
+            "negative_prompts": response.headers["negative_prompts"],
+            "model_ids": response.headers["model_ids"],
+        }
         print("Creating zip file with generated images")
         zip_file_content = response.content
 
@@ -287,7 +288,7 @@ async def run_pipeline():
                 f.writestr(file, zf.read(file))
 
         pipeline.result_path = archive_path
-        await update_pipeline_status(pipeline, PipelineStatus.RESULT_READY, "image_generation", "Images generated")
+        await update_pipeline_status(pipeline, PipelineStatus.RESULT_READY, "image_generation", response_metadata)
 
 
 @app.get("/reload", tags=['Pipeline'])
