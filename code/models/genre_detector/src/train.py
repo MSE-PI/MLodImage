@@ -9,6 +9,7 @@ import pandas as pd
 import os
 import json
 from datetime import datetime
+
 from model.audio_utils import AudioUtils
 from model.audio_cnn import AudioCNN
 
@@ -98,12 +99,17 @@ def main():
         mode='min',
     )
 
+    # early stopping callback to stop the training if the validation loss does not decrease anymore
+    early_stopping_callback = pl.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=10)
+
     trainer = pl.Trainer(
         accelerator='auto',
         devices='auto',
         max_epochs=TRAIN_PARAMS['max_epochs'],
         logger=WandbLogger(),
-        callbacks=[checkpoint_callback])
+        callbacks=[checkpoint_callback, early_stopping_callback])
         
     # train the model
     trainer.fit(model, train_loader, val_loader)
@@ -115,6 +121,9 @@ def main():
     # save the url wandb run
     with open(os.path.join(os.getcwd(), 'wandb_training_url.txt'), 'w') as f:
         f.write(wandb.run.get_url())
+
+    # stop wandb run
+    wandb.finish()
 
 if __name__ == "__main__":
     main()
