@@ -2,6 +2,7 @@ from torch.utils.data import DataLoader, Dataset, random_split
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
+import psutil
 import yaml
 import wandb
 import pandas as pd
@@ -10,6 +11,9 @@ import json
 from datetime import datetime
 from model.audio_utils import AudioUtils
 from model.audio_cnn import AudioCNN
+
+print("Number of CPUs: ", psutil.cpu_count())
+print("Number of CPUs: ", psutil.virtual_memory())
 
 DATA_DIR: str = os.path.join(os.getcwd(), 'data')
 AUDIO_DIR: str = os.path.join(DATA_DIR, 'raw', 'audio')
