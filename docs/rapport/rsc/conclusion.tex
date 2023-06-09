@@ -1,0 +1,52 @@
+En conclusion, nous avons développé une pipeline complète permettant de générer des images à partir d'un morceau musical. Durant les quatre mois qui ont couvert ce projet, nous avons tout d'abord pris connaissance des objectifs et de ses contraintes. Il fallait notamment qu'il soit compatible avec le Core Engine et respecte d'autres consignes \cite{CDC}. Les différentes tâches ont ensuite été réparties à chacun des membres du groupe, de sorte à ce que chacun ait au moins un micro-service à développer. En plus de cela, des pipelines DevOps et MLOps ont été créées afin d'automatiser le déploiement des services et l'entraînement du modèle de détection de genre. L'orchestrateur qui permet de chaîner tous les services a ensuite été développé afin d'obtenir le résultat final de la pipeline. Pour pouvoir exécuter cette dernière, nous avons créé une Web app en VueJS qui est, elle aussi, déployée en tant que service sur Kubernetes.
+
+Nous avons finalement également vérifié la compatibilité de nos services avec le Core Engine en ajoutant la pipeline complète sur ce dernier. Notre pipeline est donc exécutable sur deux engines différents et montrent que les services qui y sont intégrés sont facilement réutilisable.
+
+Ce projet est donc une bonne entrée dans le développement plus "professionnel". En effet, ce projet intégré nous a permis de mettre d'avantage en avant la structure, le contrôle et le déploiement que les résultats. La réalisation de ce projet nous sera donc très bénéfique pour la suite de notre parcours professionnel.
+
+\section{Conclusions personnelles}
+
+En arrivant à la fin de ce projet, nous avons tous pris un moment pour réfléchir individuellement à ce que nous avons appris en travaillant ensemble. Les conclusions personnelles de chaque membre de l'équipe décrivent les conditions de travail, la cohésion de groupe et un compte rendu des objectifs personnels (cf. le cahier des charges \cite{CDC}).
+
+\subsection*{Andrea}
+Pour ma part, j'ai trouvé ce travail très enrichissant. Faisant partie de l'équipe du CSIA-PME qui a développé le Core Engine, ce projet m'a permis de développer des micro-services et un système d'orchestration de pipelines d'une autre manière et de découvrir de nouvelles librairies.
+
+En plus de ça, un de mes objectifs était d'apprendre à utiliser VueJS, un framework que je n'avais que peu utilisé. C'était un bon test, mais je ne pense pas le réutiliser par la suite. En effet, son utilisation et sa logique de développement le rendent beaucoup plus compliqué à utiliser que ses concurrents: React et Angular.
+
+Pour ce qui est de mes compétences en machine-learning, elles ont, elles aussi, évolué. En effet, je connais maintenant un peu mieux comment fonctionnent les transformers de HuggingFace et plusieurs méthodes d'analyse de sentiments/émotions.
+
+Dans l'ensemble j'ai bien aimé réaliser ce projet car en plus d'être enrichissant, il se termine avec un résultat très amusant à utiliser.
+
+\subsection*{Benjamin}
+
+De manière générale, j'ai beaucoup apprécié travaillé sur ce projet, notamment sur les aspects plus techniques que je n'ai pas l'habitude d'utiliser dans mes études. En effet, la mise en place de pratiques MLOps permettant le déploiement et l'évaluation automatique de modèles de machine-learning était nouvelle pour moi et un joli défi que nous avons réussi à réaliser. J'ai donc appris de nouveaux concepts qui me seront certainement utiles dans le monde professionnel.
+
+J'ai pu également approfondir mes connaissances en machine-learning, en particulier concernant l'apprentissage de nouveaux frameworks tels que PyTorch et PyTorch Lightning dont la popularité ne cesse d'augmenter dans le monde de l'intelligence artificielle. La création d'un modèle capable de classifier des données audio était également une tâche nouvelle pour moi, qui m'a permis de découvrir de nouvelles méthodes.
+
+Finalement, je suis très satisfait des résultats que nous avons obtenus, notre pipeline est originale et notre application web est très agréable à utiliser. De plus, l'ambiance de travail était très agréable et n'avons eu aucune peine à se coordonner afin de réaliser les différentes tâches du projet.
+
+\subsection*{Florian}
+Dans sa globalité, ce projet m'a été assez bénéfique. Il m'a permis un de consolider mes compétences en DevOps, notamment en découvrant la plate-forme GitHub, inexplorée jusqu'à ce jour. De plus, devoir réfléchir à un processus pour que d'autres personnes en bénéficient était une première pour ma part, et ce fut très enrichissant. Même si la solution apportée n'est peut-être pas parfaite, cela m'a permis d'en apprendre plus sur cette philosophie de travail.
+
+En plus de cela, j'ai pu également m'essayer à la création d'un service de machine-learning, chose qui m'effrayait un peu au début du projet. En effet, ce n'est pas un domaine dans lequel je suis spécialisé. Mais, finalement, cela c'est plutôt bien passé et le résultat est bon. 
+
+La mise en place de la pipeline MLOps ainsi que la discussion avec mes collègues (qui eux sont plus spécialisé dans ce domaine) m'ont aussi permis d'en apprendre un peu plus sur le monde du machine-learning.
+
+Finalement, je peux dire que mes objectifs personnels pour ce projet sont atteints. Non seulement j'ai agrandi mes connaissances DevOps / MLOps, mais j'ai aussi pu en découvrir d'avantage sur le machine-learning, notamment grâce à mes collèges. En plus de cela, l'application de notre workflow est une idée originale, et nous avons obtenu des résultats plutôt bon, tout en prenant en compte les exigences du projet.
+
+\subsection*{Thibaut}
+Travailler sur ce projet a été très intéressant. En effet, il a été agréable de pouvoir choisir librement le but de la pipeline et de pouvoir travailler sur un sujet qui nous intéresse. De plus, le fait de travailler en équipe a été très enrichissant. Cela m'a a permis de découvrir de nouvelles méthodes de travail et de pouvoir échanger des connaissances avec mes collègues.
+
+Le réalisation de ce projet m'a permis d'accroître mes connaissances en machine learning notamment avec les modèles de diffusions et les transformers. J'ai également pu avoir un aperçu de la mise en place d'une pipeline de machine learning avec les différentes étapes à suivre et différents concept de MLOps. Finalement, j'ai pu découvrir l'outil d'orchestration Prefect qui, malgré le fait qu'elle ne soit pas pleinement intégré au projet, m'a permis d'apprendre à l'utiliser et cela me sera très probablement utile dans le futur.
+
+L'application ainsi que la pipeline sont fonctionnelles et nous avons réussi à atteindre les objectifs que nous nous étions fixés ce qui est très satisfaisant.
+
+\section{Perspectives d'améliorations}
+
+Le projet est certes terminé, mais il reste quelques points qui pourraient être améliorés. Tout d'abord, la gestion des erreurs dans l'orchestration et sur la Web app est très minime. On pourrait par exemple ajouter des exceptions personnalisées et afficher un message précis sur la Web app.
+
+Bien sûr, un point critique est aussi la précision de la pipeline au complet. En améliorant la fiabilité de chaque modèle, on pourrait avoir des résultats encore plus cohérents. Le service de détection de genre a par exemple un impact considérable sur le visuel final généré. Le modèle qui y est intégré pourrait être amélioré et d'autres technologies de réseaux de neurones pourraient être envisagées dans le futur.
+
+Une autre amélioration serait d'optimiser les différents services afin de baisser le temps d'inférence. En effet, pour l'instant, le service de génération d'image prend 1 minute pour générer 3 images. Nous sommes certes limités par les ressources à disposition sur le Kubernetes de Fribourg, mais il est certainement possible de réduire ce temps d'exécution.
+
+Pour terminer, il serait bien d'avoir une série de tests pour chacun de nos services. Ces tests ne doivent pas forcément être sous la forme de tests unitaires à exécuter avant la construction de l'image Docker, mais plutôt des tests un peu plus haut niveau qui testent la disponibilité des services une fois ces derniers déployés (simple requête par exemple). À un plus haut niveau, avoir un outil qui teste en permanence le bon fonctionnement de le chaîne complète, et également l'utilisation de la Web app (tests d'intégration), serait aussi une bonne chose à mettre en place afin d'avoir la certitude que chaque nouvelle version d'un service ne perturbe pas la chaîne complète.
