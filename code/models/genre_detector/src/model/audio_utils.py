@@ -78,10 +78,13 @@ class AudioUtils():
         max_length = sample_rate//1000 * length
 
         if signal.shape[1] > max_length:
-            signal = signal[:, :max_length]
+            start_index = (signal.shape[1] - max_length) // 2
+            signal = signal[:, start_index:(start_index + max_length)]
         elif signal.shape[1] < max_length:
             padding = max_length - signal.shape[1]
-            signal = F.pad(signal, (0, padding))
+            pad_left = padding // 2
+            pad_right = padding - pad_left
+            signal = F.pad(signal, (pad_left, pad_right))
         return signal, sample_rate
 
     @staticmethod

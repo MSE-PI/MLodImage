@@ -11,8 +11,8 @@ stages:
       md5: 9cdb2f4b9dbd89334a68f0dd1fb78548
       size: 4958
     - path: src/model/audio_utils.py
-      md5: 8735c99967840f59c5ff35dbac222b58
-      size: 4784
+      md5: 198dca5ace957f44f68e4abba9c4560c
+      size: 4961
     - path: src/train.py
       md5: cc505f386042851359afcc6796ae793d
       size: 4743
@@ -29,7 +29,7 @@ stages:
       md5: 59bd33fa79936fbb1d881a23ea2ae2db
       size: 211
     - path: src/model/model.ckpt
-      md5: 0eb8a4ef8a1af5ba34ba0c820c5d03f1
+      md5: cf65c3ad936bf81fb93e73c3c48cad63
       size: 1238895
   evaluate:
     cmd: python3 src/evaluate.py
@@ -42,7 +42,7 @@ stages:
       md5: 5fbd2a3f65f3df9eea0d9fa9244fe645
       size: 3996
     - path: src/model/model.ckpt
-      md5: 0eb8a4ef8a1af5ba34ba0c820c5d03f1
+      md5: cf65c3ad936bf81fb93e73c3c48cad63
       size: 1238895
     params:
       params.yaml:
@@ -51,15 +51,15 @@ stages:
           nb_workers: 0
     outs:
     - path: dvc_logs/metrics.json
-      md5: b69101f02572b712253cf80033383093
-      size: 37
+      md5: e5074f091e9950c2a587751105ac6291
+      size: 38
     - path: dvc_logs/plots/metrics
-      md5: 4ccfc423642979644236af1edd272768.dir
-      size: 34
+      md5: e6db4ef3e4ae533f3489a7d93f8523a2.dir
+      size: 35
       nfiles: 1
     - path: dvc_logs/plots/sklearn/cm.json
-      md5: 735545a2202f36cea9cf23f8a2c67b12
-      size: 46419
+      md5: cc34c2337c950ad21827b8c5b5a37889
+      size: 46370
     - path: dvc_logs/report.html
-      md5: a86a5d43f8c87a0f26ffe587a53401bd
-      size: 30715
+      md5: e800ef81acc1eff76612d71b7b755667
+      size: 30667
