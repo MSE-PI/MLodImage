@@ -15,7 +15,7 @@ import io
 import asyncio
 
 api_description = """
-This service is the orchestrator of the MLodImage project. It is responsible for:
+This service is the orchestrator of the MLodImage project. It is responsible for: 
 - Receiving requests from the client with the audio file or a YouTube URL
 - Call youtube-downloader service to download the audio file
 - Call whisper service to generate the lyrics
