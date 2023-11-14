@@ -51,7 +51,7 @@ jobs:
         run: |
           kubectl -n ${{ vars.SERVICE_NAMESPACE }} create secret docker-registry github-cred --docker-server=ghcr.io --docker-username=${{ secrets.REGISTRY_USER }} --docker-password=${{ secrets.REGISTRY_TOKEN }} -o yaml --save-config --dry-run=client | kubectl apply -f -
 
-      - name: Install DVC for pyton deploy script
+      - name: Install DVC for python deploy script
         run: |
           pip install -r requirements.txt
 
