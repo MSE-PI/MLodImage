@@ -70,6 +70,7 @@ class MyService(Service):
                     acronym=ExecutionUnitTagAcronym.SPEECH_RECOGNITION
                 ),
             ],
+            has_ai=True
         )
 
         # load the model :

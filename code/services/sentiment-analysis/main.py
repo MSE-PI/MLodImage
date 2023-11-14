@@ -131,7 +131,7 @@ class MyService(Service):
     def __init__(self):
         super().__init__(
             name="Sentiment Analysis",
-            slug="sentiment_analysis",
+            slug="sentiment-analysis",
             url=settings.service_url,
             summary=api_summary,
             description=api_description,
@@ -148,6 +148,7 @@ class MyService(Service):
                     acronym=ExecutionUnitTagAcronym.SENTIMENT_ANALYSIS,
                 ),
             ],
+            has_ai=True
         )
 
     def process(self, data):

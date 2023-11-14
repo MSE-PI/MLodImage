@@ -3,8 +3,8 @@
     {
       "name": "Whisper",
       "slug": "whisper",
-      "summary": "Speech to text",
-      "description": "Whisper is a speech to text API that allows you to convert audio to text. It supports multiple languages and accents.",
+      "summary": "Speech to text.",
+      "description": "Transcribe any audio file to text. Returns the transcription of the audio file as a string.",
       "status": "available",
       "data_in_fields": [
         {
@@ -29,13 +29,14 @@
           "acronym": "SR"
         }
       ],
+      "has_ai": true,
       "url": "https://whisper-mlodimage.kube.isc.heia-fr.ch"
     },
     {
       "name": "Sentiment Analysis",
       "slug": "sentiment-analysis",
-      "summary": "Analyse the sentiment of a text",
-      "description": "Sentiment Analysis is a text analysis API that allows you to analyse the sentiment of a text. Returns the emotions and top 10 words.",
+      "summary": "Analyze sentiment and emotions of a given text.",
+      "description": "Analyze sentiment of a given text. Returns a JSON object with the following fields:\n- `language`: the language of the text\n- `sentiment`: the sentiments detected in the text\n- `top_words`: the top words in the text",
       "status": "available",
       "data_in_fields": [
         {
@@ -59,6 +60,7 @@
           "acronym": "SA"
         }
       ],
+      "has_ai": true,
       "url": "https://sentiment-analysis-mlodimage.kube.isc.heia-fr.ch"
     },
     {
@@ -90,6 +92,7 @@
           "acronym": "NN"
         }
       ],
+      "has_ai": true,
       "url": "https://genre-detection-mlodimage.kube.isc.heia-fr.ch"
     },
     {
@@ -144,6 +147,7 @@
           "acronym": "IP"
         }
       ],
+      "has_ai": true,
       "url": "https://art-generation-mlodimage.kube.isc.heia-fr.ch"
     }
   ]
