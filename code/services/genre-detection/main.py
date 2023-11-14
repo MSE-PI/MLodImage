@@ -86,7 +86,7 @@ class MyService(Service):
                     acronym=ExecutionUnitTagAcronym.NEURAL_NETWORKS
                 ),
             ],
-            has_ai=True
+            has_ai=True,
         )
 
         global mapping, model, device
