@@ -54,7 +54,6 @@ jobs:
       - name: Install DVC for python deploy script
         run: |
           pip install -r requirements.txt
-          pip install pyOpenSSL --upgrade
 
       - name: Run python script
         env:
