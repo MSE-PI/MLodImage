@@ -418,7 +418,7 @@ const downloadAll = () => {
                                 </v-card-text>
                                 <v-card-text v-else class="card card-middle pb-2">
                                     <v-container class="pl-0 pr-0 pb-0 pt-0">
-                                        <v-row class="text-center">
+                                        <!--<v-row class="text-center">
                                             <v-col class="pb-0">
                                                 <div class="custom-text-field rounded-lg mb-5">
                                                     <v-text-field
@@ -439,7 +439,7 @@ const downloadAll = () => {
                                             <v-col class="text-amber text-h6">
                                                 OR
                                             </v-col>
-                                        </v-row>
+                                        </v-row>-->
                                         <v-row class="text-center">
                                             <v-col>
                                                 <FileUpload/>
