@@ -4,7 +4,7 @@
       "name": "Whisper",
       "slug": "whisper",
       "summary": "Speech to text",
-      "description": "Whisper is a speech to text API that allows you to convert audio to text in real time. It supports multiple languages and accents.",
+      "description": "Whisper is a speech to text API that allows you to convert audio to text. It supports multiple languages and accents.",
       "status": "available",
       "data_in_fields": [
         {
@@ -95,8 +95,8 @@
     {
       "name": "Art Generation",
       "slug": "art-generation",
-      "summary": "Generate art image(s)",
-      "description": "Art Generation is an image generation API that allows you to generate an art image (album cover). Returns 3 generated images.",
+      "summary": "Generate art images (album covers) from lyrics and sentiments",
+      "description": "Album Cover Art Generation is an image generation API that allows you to generate an art image (album cover)from lyrics and music style. Returns several images:\n- `image1`: the first generated image (stabilityai/stable-diffusion-2-base)\n- `image2`: the second generated image (prompthero/openjourney)\n- `image3`: the third generated image (civitai)",
       "status": "available",
       "data_in_fields": [
         {

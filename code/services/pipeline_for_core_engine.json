@@ -1,8 +1,8 @@
 {
-    "name": "Cover Generator",
-    "slug": "cover-generator",
-    "summary": "Generate a cover image for a song",
-    "description": "Generate a cover image for a song based on the song's lyrics and music style.",
+    "name": "Album Cover Generator",
+    "slug": "album-cover-generator",
+    "summary": "Generate an album cover image for a song",
+    "description": "Generate an album cover image for a song based on the song's lyrics and music style.",
     "data_in_fields": [
         {
             "name": "audio",
@@ -58,7 +58,7 @@
             "service_id": ""
         },
         {
-            "identifier": "art-generation",
+            "identifier": "album-cover-art-generation",
             "needs": ["sentiment-analysis", "genre-detection"],
             "inputs": ["sentiment-analysis.result", "genre-detection.result"],
             "service_id": ""

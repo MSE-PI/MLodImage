@@ -122,8 +122,8 @@ class MyService(Service):
 
     def __init__(self):
         super().__init__(
-            name="Art Generation",
-            slug="art_generation",
+            name="Album Cover Art Generation",
+            slug="album-cover-art-generation",
             url=settings.service_url,
             summary=api_summary,
             description=api_description,
@@ -222,7 +222,7 @@ Generate art from lyrics and music style. Returns several images:
 
 # Define the FastAPI application with information
 app = FastAPI(
-    title="Art Generation API.",
+    title="Album Cover Art Generation API.",
     description=api_description,
     version="0.0.1",
     swagger_ui_parameters={
