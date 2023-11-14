@@ -144,6 +144,7 @@ class MyService(Service):
                     acronym=ExecutionUnitTagAcronym.IMAGE_PROCESSING
                 ),
             ],
+            has_ai=True
         )
 
     def process(self, data):
