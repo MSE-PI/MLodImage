@@ -96,9 +96,9 @@
       "url": "https://genre-detection-mlodimage.kube.isc.heia-fr.ch"
     },
     {
-      "name": "Art Generation",
-      "slug": "art-generation",
-      "summary": "Generate art images (album covers) from lyrics and sentiments",
+      "name": "Album Cover Art Generation",
+      "slug": "album-cover-art-generation",
+      "summary": "Generate art images (album covers) from lyrics and sentiments.",
       "description": "Album Cover Art Generation is an image generation API that allows you to generate an art image (album cover)from lyrics and music style. Returns several images:\n- `image1`: the first generated image (stabilityai/stable-diffusion-2-base)\n- `image2`: the second generated image (prompthero/openjourney)\n- `image3`: the third generated image (civitai)",
       "status": "available",
       "data_in_fields": [

@@ -210,14 +210,13 @@ class MyService(Service):
 
 
 api_summary = """
-This service generates art from lyrics and music style with different models.
+Generate art images (album covers) from lyrics and sentiments.
 """
 
-api_description = """
-Generate art from lyrics and music style. Returns several images:
-- `image1`: the first generated image 
-- `image2`: the second generated image
-- `image3`: the third generated image
+api_description = """Album Cover Art Generation is an image generation API that allows you to generate an art image (album cover)from lyrics and music style. Returns several images:
+- `image1`: the first generated image (stabilityai/stable-diffusion-2-base)
+- `image2`: the second generated image (prompthero/openjourney)
+- `image3`: the third generated image (civitai)
 """
 
 # Define the FastAPI application with information
