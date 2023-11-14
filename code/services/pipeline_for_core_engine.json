@@ -46,7 +46,7 @@
             "service_id": ""
         },
         {
-            "identifier": "genre-detection",
+            "identifier": "musical-genre-detection",
             "needs": [],
             "inputs": ["pipeline.audio"],
             "service_id": ""
@@ -59,8 +59,8 @@
         },
         {
             "identifier": "album-cover-art-generation",
-            "needs": ["sentiment-analysis", "genre-detection"],
-            "inputs": ["sentiment-analysis.result", "genre-detection.result"],
+            "needs": ["sentiment-analysis", "musical-genre-detection"],
+            "inputs": ["sentiment-analysis.result", "musical-genre-detection.result"],
             "service_id": ""
         }
     ]

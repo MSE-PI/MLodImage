@@ -62,10 +62,10 @@
       "url": "https://sentiment-analysis-mlodimage.kube.isc.heia-fr.ch"
     },
     {
-      "name": "Genre Detection",
-      "slug": "genre-detection",
+      "name": "Musical Genre Detection",
+      "slug": "musical-genre-detection",
       "summary": "Detect the style of a music",
-      "description": "Genre Detection is a music analysis API that allows you to detect the style of a music. Returns the top genre and the confidence for each genre.",
+      "description": "Detect the musical genre of a song. Returns a JSON object with the following fields:\n- `genre_top': the top genre of the song\n- `genres': a dictionary of the genres of the song with their probabilities",
       "status": "available",
       "data_in_fields": [
         {
